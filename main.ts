@@ -3,15 +3,23 @@ import { Plugin, Notice } from 'obsidian';
 import { CurrentFileModal } from './src/modals/CurrentFileModal';
 import { ConvertLocalImagesForCurrentFile } from './src/modals/ConvertLocalImagesForCurrentFile';
 import { BatchDirectoryConvertLocalToRemote } from './src/modals/BatchDirectoryConvertLocalToRemote';
-import { FreepikModal } from './src/modals/FreepikModal';
+import { MagnificModal } from './src/modals/MagnificModal';
 import { ImageGinSettings, ImageGinSettingTab, DEFAULT_SETTINGS } from './src/settings/settings';
 
 export default class ImageGinPlugin extends Plugin {
     settings: ImageGinSettings = { ...DEFAULT_SETTINGS };
 
     async loadSettings(): Promise<void> {
-        const loadedSettings = await this.loadData();
+        const loadedSettings = (await this.loadData()) ?? {};
+        // One-shot migration: Freepik rebranded to Magnific. Move legacy
+        // `freepik` config into `magnific` so the user's saved key/enabled
+        // flag survive the schema rename. Persists via saveSettings below.
+        if (loadedSettings.freepik && !loadedSettings.magnific) {
+            loadedSettings.magnific = loadedSettings.freepik;
+            delete loadedSettings.freepik;
+        }
         this.settings = { ...DEFAULT_SETTINGS, ...loadedSettings };
+        await this.saveSettings();
     }
 
     async saveSettings(): Promise<void> {
@@ -49,13 +57,13 @@ export default class ImageGinPlugin extends Plugin {
         });
 
         this.addCommand({
-            id: 'search-freepik-images',
-            name: 'Search Freepik Images',
+            id: 'search-magnific-images',
+            name: 'Search Magnific Images',
             callback: () => {
-                if (this.settings.freepik.enabled) {
-                    new FreepikModal(this.app, this).open();
+                if (this.settings.magnific.enabled) {
+                    new MagnificModal(this.app, this).open();
                 } else {
-                    new Notice('Freepik integration is not enabled. Please enable it in settings.');
+                    new Notice('Magnific integration is not enabled. Please enable it in settings.');
                 }
             }
         });

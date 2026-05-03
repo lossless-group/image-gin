@@ -79,10 +79,10 @@ export interface ImageKitSettings {
     convertToWebp: boolean;
 }
 
-export interface FreepikSettings {
+export interface MagnificSettings {
     enabled: boolean;
     apiKey: string;
-    defaultLicense: 'free' | 'premium';
+    defaultLicense: 'freemium' | 'premium';
     defaultImageCount: number;
 }
 
@@ -108,7 +108,7 @@ export interface ImageGinSettings {
     imageStylesJSON: string;
     imageOutputFolder: string;
     imageKit: ImageKitSettings;
-    freepik: FreepikSettings;
+    magnific: MagnificSettings;
     imageCache: ImageCacheSettings;
 }
 
@@ -156,10 +156,10 @@ export const DEFAULT_SETTINGS: ImageGinSettings = {
         removeLocalFiles: false,
         convertToWebp: true,
     },
-    freepik: {
+    magnific: {
         enabled: false,
         apiKey: '',
-        defaultLicense: 'free',
+        defaultLicense: 'freemium',
         defaultImageCount: 10,
     },
     imageCache: {
@@ -489,44 +489,44 @@ export class ImageGinSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        // Freepik Settings Section
-        containerEl.createEl('h3', { text: 'Freepik Image Search' });
+        // Magnific Settings Section
+        containerEl.createEl('h3', { text: 'Magnific Image Search' });
 
-        // Freepik Enable Toggle
+        // Magnific Enable Toggle
         new Setting(containerEl)
-            .setName('Enable Freepik Integration')
-            .setDesc('Enable Freepik image search functionality')
+            .setName('Enable Magnific Integration')
+            .setDesc('Enable Magnific image search functionality')
             .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.freepik.enabled)
+                .setValue(this.plugin.settings.magnific.enabled)
                 .onChange(async (value) => {
-                    this.plugin.settings.freepik.enabled = value;
+                    this.plugin.settings.magnific.enabled = value;
                     await this.plugin.saveSettings();
                     this.display(); // Refresh to show/hide dependent settings
                 }));
 
-        if (this.plugin.settings.freepik.enabled) {
-            // Freepik API Key
+        if (this.plugin.settings.magnific.enabled) {
+            // Magnific API Key
             new Setting(containerEl)
-                .setName('Freepik API Key')
-                .setDesc('Your Freepik API key for accessing the image search service')
+                .setName('Magnific API Key')
+                .setDesc('Your Magnific API key for accessing the image search service')
                 .addText(text => text
-                    .setPlaceholder('Enter your Freepik API key')
-                    .setValue(this.plugin.settings.freepik.apiKey)
+                    .setPlaceholder('Enter your Magnific API key')
+                    .setValue(this.plugin.settings.magnific.apiKey)
                     .onChange(async (value) => {
-                        this.plugin.settings.freepik.apiKey = value;
+                        this.plugin.settings.magnific.apiKey = value;
                         await this.plugin.saveSettings();
                     }));
 
             // Default License Type
             new Setting(containerEl)
                 .setName('Default License Type')
-                .setDesc('Default license type for Freepik image searches')
+                .setDesc('Default license type for Magnific image searches')
                 .addDropdown(dropdown => dropdown
-                    .addOption('free', 'Free')
+                    .addOption('freemium', 'Freemium')
                     .addOption('premium', 'Premium')
-                    .setValue(this.plugin.settings.freepik.defaultLicense)
+                    .setValue(this.plugin.settings.magnific.defaultLicense)
                     .onChange(async (value) => {
-                        this.plugin.settings.freepik.defaultLicense = value as 'free' | 'premium';
+                        this.plugin.settings.magnific.defaultLicense = value as 'freemium' | 'premium';
                         await this.plugin.saveSettings();
                     }));
 
@@ -536,10 +536,10 @@ export class ImageGinSettingTab extends PluginSettingTab {
                 .setDesc('Default number of images to fetch in search results (1-50)')
                 .addSlider(slider => slider
                     .setLimits(1, 50, 1)
-                    .setValue(this.plugin.settings.freepik.defaultImageCount)
+                    .setValue(this.plugin.settings.magnific.defaultImageCount)
                     .setDynamicTooltip()
                     .onChange(async (value) => {
-                        this.plugin.settings.freepik.defaultImageCount = value;
+                        this.plugin.settings.magnific.defaultImageCount = value;
                         await this.plugin.saveSettings();
                     }));
         }

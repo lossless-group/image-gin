@@ -1,4 +1,4 @@
-import { App, TFile, Vault, normalizePath } from 'obsidian';
+import { App, TFile, normalizePath } from 'obsidian';
 import { ImageGinSettings } from '../settings/settings';
 import { Notice } from 'obsidian';
 
@@ -18,21 +18,23 @@ export class ImageCacheService {
     constructor(app: App, settings: ImageGinSettings) {
         this.app = app;
         this.settings = settings;
-        this.cacheFolder = '.obsidian/plugins/image-gin/cache';
+        this.cacheFolder = this.settings.imageCache.cacheFolder;
         this.ensureCacheFolder();
     }
 
     /**
-     * Ensure the cache folder exists
+     * Ensure the cache folder exists. Uses the adapter API because the default
+     * cache folder lives under `.obsidian/`, which `vault.getAbstractFileByPath`
+     * does not index. mkdir may throw "Folder already exists" — that's the desired
+     * end state, so swallow it.
      */
     private async ensureCacheFolder(): Promise<void> {
         const normalizedPath = normalizePath(this.cacheFolder);
-        const folder = this.app.vault.getAbstractFileByPath(normalizedPath);
-        
-        if (!folder) {
-            try {
-                await this.app.vault.createFolder(normalizedPath);
-            } catch (error) {
+        try {
+            await this.app.vault.adapter.mkdir(normalizedPath);
+        } catch (error) {
+            const msg = error instanceof Error ? error.message : String(error);
+            if (!/already exists/i.test(msg)) {
                 console.error('Failed to create cache folder:', error);
             }
         }
@@ -49,7 +51,7 @@ export class ImageCacheService {
         
         // Create a hash-based filename to avoid conflicts
         const hash = this.simpleHash(url);
-        return `freepik_${hash}.${extension}`;
+        return `magnific_${hash}.${extension}`;
     }
 
     /**
@@ -90,10 +92,9 @@ export class ImageCacheService {
             }
 
             const arrayBuffer = await response.arrayBuffer();
-            const uint8Array = new Uint8Array(arrayBuffer);
 
             // Save to vault
-            await this.app.vault.createBinary(localPath, uint8Array);
+            await this.app.vault.createBinary(localPath, arrayBuffer);
 
             const cachedImage: CachedImage = {
                 originalUrl: imageUrl,

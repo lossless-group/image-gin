@@ -1,11 +1,11 @@
-/* Freepik Modal Styles */
-.freepik-search-container {
+/* Magnific Modal Styles */
+.magnific-search-container {
     display: flex;
     gap: 10px;
     margin-bottom: 20px;
 }
 
-.freepik-search-container input[type="text"] {
+.magnific-search-container input[type="text"] {
     flex: 1;
     padding: 8px 12px;
     border: 1px solid var(--background-modifier-border);
@@ -14,7 +14,7 @@
     color: var(--text-normal);
 }
 
-.freepik-search-container button {
+.magnific-search-container button {
     padding: 8px 16px;
     background-color: var(--interactive-accent);
     color: var(--text-on-accent);
@@ -23,18 +23,18 @@
     cursor: pointer;
 }
 
-.freepik-search-container button:hover {
+.magnific-search-container button:hover {
     background-color: var(--interactive-accent-hover);
 }
 
-.freepik-grid {
+.magnific-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 20px;
     margin-top: 20px;
 }
 
-.freepik-image-container {
+.magnific-image-container {
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -46,19 +46,19 @@
     cursor: pointer;
 }
 
-.freepik-image-container:hover {
+.magnific-image-container:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.freepik-thumbnail {
+.magnific-thumbnail {
     width: 100%;
     height: 150px;
     object-fit: cover;
     border-radius: 4px;
 }
 
-.freepik-title {
+.magnific-title {
     margin: 0;
     font-size: 0.9em;
     color: var(--text-muted);
@@ -67,7 +67,7 @@
     text-overflow: ellipsis;
 }
 
-.freepik-select-button {
+.magnific-select-button {
     margin-top: auto;
     padding: 6px 12px;
     background-color: var(--interactive-accent);
@@ -79,11 +79,11 @@
     align-self: flex-start;
 }
 
-.freepik-select-button:hover {
+.magnific-select-button:hover {
     background-color: var(--interactive-accent-hover);
 }
 
-.freepik-error {
+.magnific-error {
     color: var(--text-error);
     padding: 10px;
     background-color: var(--background-modifier-error);
@@ -91,21 +91,21 @@
     border-left: 3px solid var(--text-error);
 }
 
-.freepik-status {
+.magnific-status {
     color: var(--text-muted);
     font-style: italic;
     text-align: center;
     padding: 20px;
 }
 
-.freepik-no-results {
+.magnific-no-results {
     color: var(--text-muted);
     text-align: center;
     padding: 20px;
     font-style: italic;
 }
 
-.freepik-error-message {
+.magnific-error-message {
     color: var(--text-error);
     padding: 10px;
     background-color: var(--background-modifier-error);

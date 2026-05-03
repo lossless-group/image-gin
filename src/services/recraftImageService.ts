@@ -212,7 +212,7 @@ export class RecraftImageService {
                     await this.vault.createFolder(folderPath);
                 }
                 
-                const file = await this.vault.createBinary(filePath, bytes);
+                const file = await this.vault.createBinary(filePath, bytes.buffer as ArrayBuffer);
                 return file;
             }
         } catch (error) {

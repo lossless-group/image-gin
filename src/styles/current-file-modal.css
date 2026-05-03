@@ -1,5 +1,7 @@
 /* image-gin/src/styles/current-file-modal.css */
 
+@import './magnific.css';
+
 /* ===== Base Modal Styles ===== */
 .modal {
     padding: 1.5rem;

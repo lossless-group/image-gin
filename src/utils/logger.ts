@@ -11,7 +11,7 @@ interface LogEntry {
 
 export class FileLogger {
   private static instance: FileLogger;
-  private logFile: string = 'freepik-errors.json';
+  private logFile: string = 'magnific-errors.json';
   private vault: Vault | null = null;
   private logEntries: LogEntry[] = [];
   private isSaving = false;
