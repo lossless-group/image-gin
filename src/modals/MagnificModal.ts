@@ -1,6 +1,10 @@
-import { App, Modal, Notice, MarkdownView } from 'obsidian';
-import { MagnificService, MagnificImage } from '../services/magnificService.ts';
-import { ImageCacheService, CachedImage } from '../services/imageCacheService';
+import { logger } from '../utils/logger';
+import type { App} from 'obsidian';
+import { Modal, Notice, MarkdownView } from 'obsidian';
+import type { MagnificImage } from '../services/magnificService.ts';
+import { MagnificService } from '../services/magnificService.ts';
+import type { CachedImage } from '../services/imageCacheService';
+import { ImageCacheService } from '../services/imageCacheService';
 import type ImageGinPlugin from '../../main';
 
 export class MagnificModal extends Modal {
@@ -73,7 +77,7 @@ export class MagnificModal extends Modal {
 
         // Initial search if there's a query
         if (this.searchQuery) {
-            this.performSearch();
+            void this.performSearch();
         }
     }
 
@@ -87,7 +91,7 @@ export class MagnificModal extends Modal {
         });
 
         try {
-            console.log('Performing search with term:', this.searchQuery);
+            logger.info('Performing search with term:', this.searchQuery);
             const result = await this.magnificService.searchImages(this.searchQuery, this.plugin.settings.magnific.defaultImageCount);
             this.images = result?.data || [];
             this.resultsContainer.empty();
@@ -103,10 +107,10 @@ export class MagnificModal extends Modal {
             const grid = this.resultsContainer.createDiv('magnific-grid');
 
             // Cache images and display them
-            this.cacheAndDisplayImages(this.images, grid);
+            void this.cacheAndDisplayImages(this.images, grid);
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            console.error('Error performing search:', error);
+            logger.error('Error performing search:', error);
 
             if (this.resultsContainer) {
                 this.resultsContainer.empty();
@@ -197,14 +201,14 @@ export class MagnificModal extends Modal {
                         await this.onSelect(image);
                         this.close();
                     } catch (error) {
-                        console.error('Error selecting image:', error);
+                        logger.error('Error selecting image:', error);
                         new Notice('Failed to select image. Please try again.');
                     }
                 };
             });
 
         } catch (error) {
-            console.error('Error caching images:', error);
+            logger.error('Error caching images:', error);
             loadingDiv.textContent = 'Failed to cache images. Displaying original images...';
 
             // Fallback to original display method
@@ -234,7 +238,7 @@ export class MagnificModal extends Modal {
                 }
             }
         } catch (error) {
-            console.error('Failed to cache full-size image:', error);
+            logger.error('Failed to cache full-size image:', error);
             // Continue with original URL if caching fails
         }
     }
@@ -267,7 +271,7 @@ export class MagnificModal extends Modal {
                     await this.onSelect(image);
                     this.close();
                 } catch (error) {
-                    console.error('Error selecting image:', error);
+                    logger.error('Error selecting image:', error);
                     new Notice('Failed to select image. Please try again.');
                 }
             };

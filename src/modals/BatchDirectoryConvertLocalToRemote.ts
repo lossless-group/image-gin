@@ -1,5 +1,7 @@
-import { Modal, App, Setting, TFile, Notice } from 'obsidian';
-import ImageGinPlugin from '../../main';
+import { logger } from '../utils/logger';
+import type { App, TFile} from 'obsidian';
+import { Modal, Setting, Notice } from 'obsidian';
+import type ImageGinPlugin from '../../main';
 import { ImageKitService } from '../services/imagekitService';
 import { dirname, basename } from 'path';
 
@@ -120,7 +122,7 @@ export class BatchDirectoryConvertLocalToRemote extends Modal {
         });
 
         searchBtn.addEventListener('click', () => {
-            this.handleSearch();
+            void this.handleSearch();
         });
     }
 
@@ -176,7 +178,7 @@ export class BatchDirectoryConvertLocalToRemote extends Modal {
         });
 
         convertBtn.addEventListener('click', () => {
-            this.handleConvert();
+            void this.handleConvert();
         });
     }
 
@@ -197,7 +199,7 @@ export class BatchDirectoryConvertLocalToRemote extends Modal {
                 new Notice(`Found ${this.localImages.length} local image references`);
             }
         } catch (error) {
-            console.error('Error scanning directory:', error);
+            logger.error('Error scanning directory:', error);
             new Notice(`Error scanning directory: ${this.getErrorMessage(error)}`);
         } finally {
             this.isScanning = false;
@@ -220,7 +222,7 @@ export class BatchDirectoryConvertLocalToRemote extends Modal {
                 const localImageRefs = this.extractLocalImageReferences(content, file.path);
                 this.localImages.push(...localImageRefs);
             } catch (error) {
-                console.error(`Error reading file ${file.path}:`, error);
+                logger.error(`Error reading file ${file.path}:`, error);
             }
         }
     }
@@ -385,7 +387,7 @@ export class BatchDirectoryConvertLocalToRemote extends Modal {
                     await this.convertSingleImage(imageRef, imageKitService);
                     successCount++;
                 } catch (error) {
-                    console.error(`Error converting ${imageRef.imagePath}:`, error);
+                    logger.error(`Error converting ${imageRef.imagePath}:`, error);
                     errorCount++;
                 }
             }
@@ -399,7 +401,7 @@ export class BatchDirectoryConvertLocalToRemote extends Modal {
             }
 
         } catch (error) {
-            console.error('Error in batch conversion:', error);
+            logger.error('Error in batch conversion:', error);
             new Notice(`Error during conversion: ${this.getErrorMessage(error)}`);
         } finally {
             this.isConverting = false;
@@ -446,7 +448,7 @@ export class BatchDirectoryConvertLocalToRemote extends Modal {
             try {
                 await this.app.vault.delete(imageFile);
             } catch (error) {
-                console.warn(`Could not delete local file ${imageRef.imagePath}:`, error);
+                logger.warn(`Could not delete local file ${imageRef.imagePath}:`, error);
             }
         }
     }
@@ -476,7 +478,7 @@ export class BatchDirectoryConvertLocalToRemote extends Modal {
         }
     }
 
-    private getErrorMessage(error: any): string {
+    private getErrorMessage(error: unknown): string {
         if (error instanceof Error) {
             return error.message;
         }

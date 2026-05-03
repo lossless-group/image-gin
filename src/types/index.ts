@@ -1,5 +1,5 @@
-import { PluginSettingTab } from 'obsidian';
-import { Plugin } from 'obsidian';
+import type { PluginSettingTab } from 'obsidian';
+import type { Plugin } from 'obsidian';
 
 export interface ImageSize {
     id: string;

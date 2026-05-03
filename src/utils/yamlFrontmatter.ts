@@ -1,11 +1,11 @@
-import { TFile } from 'obsidian';
+import type { TFile } from 'obsidian';
 
 /**
  * Extracts frontmatter from markdown content using regex only - no YAML libraries
  * @param content The markdown content
  * @returns The extracted frontmatter as an object, or null if no frontmatter is found
  */
-export function extractFrontmatter(content: string): Record<string, any> | null {
+export function extractFrontmatter(content: string): Record<string, unknown> | null {
   if (!content) return null;
 
   const frontmatterRegex = /^---\n((?:.|\n)*?)\n---/;
@@ -13,11 +13,11 @@ export function extractFrontmatter(content: string): Record<string, any> | null 
   if (!match || !match[1]) return null;
 
   const frontmatterContent = match[1].trim();
-  const frontmatterObject: Record<string, any> = {};
-  
+  const frontmatterObject: Record<string, unknown> = {};
+
   const lines = frontmatterContent.split('\n');
   let currentArrayProperty: string | null = null;
-  let arrayValues: any[] = [];
+  let arrayValues: unknown[] = [];
   
   for (let line of lines) {
     line = line.trim();
@@ -75,7 +75,7 @@ export function extractFrontmatter(content: string): Record<string, any> | null 
  * @param frontmatter The frontmatter object
  * @returns Formatted YAML string
  */
-export function formatFrontmatter(frontmatter: Record<string, any>): string {
+export function formatFrontmatter(frontmatter: Record<string, unknown>): string {
   return Object.entries(frontmatter)
     .map(([key, value]) => {
       // Special handling for tags property
@@ -104,8 +104,9 @@ export function formatFrontmatter(frontmatter: Record<string, any>): string {
                             /^(true|false|null|\d+(\.\d+)?)$/.test(value);
         return needsQuoting ? `${key}: "${value}"` : `${key}: ${value}`;
       }
-      // Fallback for other types
-      return `${key}: "${String(value)}"`;
+      // Fallback for other types — JSON-encode so we never produce
+      // "[object Object]" output for plain objects.
+      return `${key}: ${JSON.stringify(value) ?? '""'}`;
     })
     .join('\n');
 }
@@ -115,7 +116,7 @@ export function formatFrontmatter(frontmatter: Record<string, any>): string {
  * @param value The tags value (array, string, or other)
  * @returns Formatted tags line
  */
-function formatTagsProperty(value: any): string {
+function formatTagsProperty(value: unknown): string {
   if (value === null) return 'tags: null';
   if (value === undefined) return 'tags: []';
   
@@ -150,8 +151,9 @@ function formatTagsProperty(value: any): string {
     return `tags: [${value}]`;
   }
   
-  // Fallback
-  return `tags: [${String(value)}]`;
+  // Fallback for non-array, non-string values (number/boolean/object) —
+  // JSON-encode so we never emit "[object Object]".
+  return `tags: [${JSON.stringify(value) ?? ''}]`;
 }
 
 /**

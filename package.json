@@ -1,12 +1,13 @@
 {
 	"name": "image-gin-plugin",
-	"version": "0.0.9",
+	"version": "0.1.0",
 	"description": "Enables users to use Generative AI to generate contextually relevant images through an [Obsidian](https://obsidian.md) plugin.",
 	"main": "main.js",
 	"scripts": {
 		"setup": "node setup-plugin.mjs",
 		"dev": "node esbuild.config.mjs",
-		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+		"lint": "eslint . --report-unused-disable-directives",
+		"build": "eslint . --report-unused-disable-directives && tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
 		"version": "node version-bump.mjs && git add manifest.json versions.json"
 	},
 	"keywords": [

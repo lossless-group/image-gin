@@ -1,5 +1,7 @@
+import { logger } from '../utils/logger';
 import { requestUrl } from 'obsidian';
 import type { ImageGinSettings } from '../settings/settings';
+import { isRecord } from '../utils/coerce';
 
 export interface ImageKitUploadResult {
     fileId: string;
@@ -95,7 +97,7 @@ export class ImageKitService {
         combinedBuffer.set(fileBytes, headerBytes.length);
         combinedBuffer.set(footerBytes, headerBytes.length + fileBytes.length);
 
-        console.log('Uploading to ImageKit:', {
+        logger.info('Uploading to ImageKit:', {
             fileName: finalFileName,
             folder: uploadFolder,
             tags: tags?.join(','),
@@ -115,7 +117,7 @@ export class ImageKitService {
             });
 
             if (response.status !== 200) {
-                console.error('ImageKit upload failed:', {
+                logger.error('ImageKit upload failed:', {
                     status: response.status,
                     response: response.text
                 });
@@ -123,11 +125,11 @@ export class ImageKitService {
             }
 
             const result = typeof response.json === 'function' ? await response.json() : response.json;
-            console.log('ImageKit upload successful:', result.url);
+            logger.info('ImageKit upload successful:', result.url);
             
             return result as ImageKitUploadResult;
         } catch (error) {
-            console.error('Error uploading to ImageKit:', error);
+            logger.error('Error uploading to ImageKit:', error);
             throw error;
         }
     }
@@ -141,31 +143,38 @@ export class ImageKitService {
     }
 
     /**
-     * Generate tags from frontmatter for ImageKit metadata
+     * Generate tags from frontmatter for ImageKit metadata.
+     * Frontmatter is treated as untrusted: callers may pass anything
+     * (object, array, primitive). Returns deduped non-empty string tags.
      */
-    extractTagsFromFrontmatter(frontmatter: any): string[] {
+    extractTagsFromFrontmatter(frontmatter: unknown): string[] {
+        if (!isRecord(frontmatter)) return [];
+
+        const rawTags = frontmatter.tags;
         const tags: string[] = [];
-        
-        if (frontmatter.tags) {
-            if (Array.isArray(frontmatter.tags)) {
-                tags.push(...frontmatter.tags);
-            } else if (typeof frontmatter.tags === 'string') {
-                try {
-                    // Try parsing as JSON array first
-                    const parsed = JSON.parse(frontmatter.tags);
-                    if (Array.isArray(parsed)) {
-                        tags.push(...parsed);
-                    } else {
-                        // Fallback: split on comma or hyphen
-                        tags.push(...frontmatter.tags.split(/[,-]/).map((s: string) => s.trim()).filter(Boolean));
+
+        if (Array.isArray(rawTags)) {
+            for (const t of rawTags) {
+                if (typeof t === 'string') tags.push(t);
+            }
+        } else if (typeof rawTags === 'string') {
+            try {
+                // Try parsing as JSON array first
+                const parsed: unknown = JSON.parse(rawTags);
+                if (Array.isArray(parsed)) {
+                    for (const t of parsed) {
+                        if (typeof t === 'string') tags.push(t);
                     }
-                } catch {
-                    // Not JSON, fallback: split on comma or hyphen
-                    tags.push(...frontmatter.tags.split(/[,-]/).map((s: string) => s.trim()).filter(Boolean));
+                } else {
+                    // Fallback: split on comma or hyphen
+                    tags.push(...rawTags.split(/[,-]/).map(s => s.trim()).filter(Boolean));
                 }
+            } catch {
+                // Not JSON, fallback: split on comma or hyphen
+                tags.push(...rawTags.split(/[,-]/).map(s => s.trim()).filter(Boolean));
             }
         }
-        
+
         // Remove duplicates and clean up
         return [...new Set(tags)].filter(Boolean);
     }

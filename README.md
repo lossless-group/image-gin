@@ -6,7 +6,7 @@ A powerful Obsidian plugin that brings AI-powered image generation directly to y
 ## ✨ Features
 
 - **AI-Powered Image Generation**: Create stunning visuals directly from your notes using Recraft's AI models
-- **Stock Image Selection**: Seamlessly generate images using Freepik's API
+- **Stock Image Selection**: Search and insert stock images via Magnific's API (formerly Freepik)
 - **Seamless Integration**: Works natively within Obsidian's interface
 - **Flexible Image Types**: Generate both banner and portrait images with custom dimensions
 - **Smart Frontmatter Management**: Automatically updates your note's frontmatter with generated image URLs
@@ -67,18 +67,20 @@ A powerful Obsidian plugin that brings AI-powered image generation directly to y
 ## 🛠️ Configuration
 
 1. Get your Recraft API key from [Recraft's website](https://recraft.ai)
-2. Get your Freepik API key from [Freepik's website](https://www.freepik.com)
+2. Get your Magnific API key from [Magnific's developer dashboard](https://www.magnific.com/developers/dashboard/api-key)
 3. Get your ImageKit API key from [ImageKit's website](https://imagekit.io)
-3. Open Obsidian and navigate to Settings > Community Plugins
-4. Find "Image Gin" in the list and enable it
-5. Click on the gear icon to configure your API keys and default settings
+4. Open Obsidian and navigate to Settings > Community Plugins
+5. Find "Image Gin" in the list and enable it
+6. Click on the gear icon to configure your API keys and default settings
 
 ## 🖼️ Usage
 
-1. Open a note where you want to generate an image
-2. Use the command palette (`Cmd/Ctrl+P`) and search for "Generate Image"
-3. Enter your image prompt and adjust settings as needed
-4. Click "Generate" and watch your image come to life
+Open the command palette (`Cmd/Ctrl+P`) and search for any of:
+
+- **Image Gin: Generate Images for Current File** — generates AI images via Recraft from an `image_prompt` field in the active note's frontmatter.
+- **Image Gin: Search Magnific Images** — opens a stock-image search modal; clicking a result inserts the image as markdown at the cursor.
+- **Image Gin: Convert Local Images to Remote Images** — uploads local image references in the active note to ImageKit and rewrites the links.
+- **Image Gin: Batch Convert Directory Images to Remote** — same as above but scans every file in the active note's directory.
 
 ## 📝 License
 
@@ -108,31 +110,12 @@ pnpm build
 pnpm dev
 ```
 
-## Packages, Dependencies, Libraries:
-
-```json
-"devDependencies": {
-   "@types/node": "^24.0.12",
-   "@typescript-eslint/eslint-plugin": "8.36.0",
-   "@typescript-eslint/parser": "8.36.0",
-   "builtin-modules": "5.0.0",
-   "esbuild": "0.25.6",
-   "eslint": "^9.30.1",
-   "obsidian": "latest",
-   "tslib": "2.8.1",
-   "typescript": "5.8.3"
-},
-"dependencies": {
-   "@modelcontextprotocol/sdk": "^1.15.0",
-   "fastify": "^5.4.0",
-   "zod": "^4.0.0"
-}
-```
-
 ## Using Symbolic Links to Test Your Plugin
 
-If you're like us, you have a directory housing all your code projects. To use your plugin as you develop it, just create a symbolic link. Here is my example, but you will need to use your own path structure:
+If you're like us, you have a directory housing all your code projects. To use your plugin as you develop it, create a symbolic link from your dev checkout into your vault's `.obsidian/plugins/` directory. The destination folder name must match the plugin id from `manifest.json` (`image-gin-plugin`):
 
 ```bash
-ln -s /Users/mpstaton/code/lossless-monorepo/obsidian-plugin-starter /Users/mpstaton/content-md/lossless/.obsidian/plugins/
+ln -s /Users/mpstaton/code/lossless-monorepo/image-gin /Users/mpstaton/content-md/lossless/.obsidian/plugins/image-gin-plugin
 ```
+
+Adjust both paths for your own filesystem. After linking, run `pnpm dev` in the dev checkout — esbuild will watch for changes; reload the plugin in Obsidian (toggle off/on in Community Plugins) to pick up new builds.

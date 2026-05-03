@@ -4,7 +4,9 @@ import { CurrentFileModal } from './src/modals/CurrentFileModal';
 import { ConvertLocalImagesForCurrentFile } from './src/modals/ConvertLocalImagesForCurrentFile';
 import { BatchDirectoryConvertLocalToRemote } from './src/modals/BatchDirectoryConvertLocalToRemote';
 import { MagnificModal } from './src/modals/MagnificModal';
-import { ImageGinSettings, ImageGinSettingTab, DEFAULT_SETTINGS } from './src/settings/settings';
+import type { ImageGinSettings} from './src/settings/settings';
+import { ImageGinSettingTab, DEFAULT_SETTINGS } from './src/settings/settings';
+import { logger } from './src/utils/logger';
 
 export default class ImageGinPlugin extends Plugin {
     settings: ImageGinSettings = { ...DEFAULT_SETTINGS };
@@ -28,7 +30,11 @@ export default class ImageGinPlugin extends Plugin {
 
     async onload(): Promise<void> {
         await this.loadSettings();
-        
+
+        // Wire up the file logger so console.* calls in services/modals
+        // also persist to .obsidian/plugins/image-gin-plugin/log.json.
+        logger.initialize(this.app.vault);
+
         this.addSettingTab(new ImageGinSettingTab(this.app, this));
         
         // Register commands directly in onload

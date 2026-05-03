@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { requestUrl } from 'obsidian';
 
 export interface MagnificImage {
@@ -69,7 +70,7 @@ export class MagnificService {
 
             return response.json as MagnificSearchResult;
         } catch (error) {
-            console.error('Magnific API error:', error);
+            logger.error('Magnific API error:', error);
             throw new Error(`Failed to search images: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }

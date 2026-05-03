@@ -1,5 +1,7 @@
-import { App, Modal, Setting, Notice, TFile } from 'obsidian';
-import ImageGinPlugin from '../../main';
+import { logger } from '../utils/logger';
+import type { App, TFile } from 'obsidian';
+import { Modal, Setting, Notice, FileSystemAdapter } from 'obsidian';
+import type ImageGinPlugin from '../../main';
 import { extractFrontmatter, formatFrontmatter } from '../utils/yamlFrontmatter';
 import { ImageKitService } from '../services/imagekitService';
 import { readFileSync } from 'fs';
@@ -105,10 +107,10 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
                 }
             }
 
-            console.log('Found image properties:', this.imageProperties);
-            console.log('Found markdown images:', this.markdownImagePaths);
+            logger.info('Found image properties:', this.imageProperties);
+            logger.info('Found markdown images:', this.markdownImagePaths);
         } catch (error) {
-            console.error('Error analyzing current file:', error);
+            logger.error('Error analyzing current file:', error);
             this.imageProperties = [];
             this.markdownImagePaths = [];
         }
@@ -257,7 +259,7 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
         this.updateConvertButtonState();
 
         this.convertButton.addEventListener('click', () => {
-            this.handleConvert();
+            void this.handleConvert();
         });
     }
 
@@ -317,7 +319,7 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
                     // Update frontmatter with ImageKit URL
                     frontmatter[property.key] = uploadResult.url;
                     
-                    console.log(`Successfully converted ${property.key}: ${uploadResult.url}`);
+                    logger.info(`Successfully converted ${property.key}: ${uploadResult.url}`);
                     successCount++;
 
                     // Optionally remove local file if setting is enabled
@@ -325,14 +327,14 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
                         try {
                             const fs = require('fs');
                             fs.unlinkSync(localPath);
-                            console.log(`Removed local file: ${localPath}`);
+                            logger.info(`Removed local file: ${localPath}`);
                         } catch (removeError) {
-                            console.warn(`Failed to remove local file ${localPath}:`, removeError);
+                            logger.warn(`Failed to remove local file ${localPath}:`, removeError);
                         }
                     }
 
                 } catch (error) {
-                    console.error(`Error converting ${property.key}:`, error);
+                    logger.error(`Error converting ${property.key}:`, error);
                     errorCount++;
                     new Notice(`Failed to convert ${property.key}: ${this.getErrorMessage(error)}`);
                 }
@@ -368,7 +370,7 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
                         `![](${uploadResult.url})`
                     );
                     
-                    console.log(`Successfully converted markdown image: ${uploadResult.url}`);
+                    logger.info(`Successfully converted markdown image: ${uploadResult.url}`);
                     successCount++;
                     
                     // Optionally remove local file if setting is enabled
@@ -376,14 +378,14 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
                         try {
                             const fs = require('fs');
                             fs.unlinkSync(localPath);
-                            console.log(`Removed local file: ${localPath}`);
+                            logger.info(`Removed local file: ${localPath}`);
                         } catch (removeError) {
-                            console.warn(`Failed to remove local file ${localPath}:`, removeError);
+                            logger.warn(`Failed to remove local file ${localPath}:`, removeError);
                         }
                     }
                     
                 } catch (error) {
-                    console.error(`Error converting markdown image ${imagePath}:`, error);
+                    logger.error(`Error converting markdown image ${imagePath}:`, error);
                     errorCount++;
                     new Notice(`Failed to convert image ${imagePath}: ${this.getErrorMessage(error)}`);
                 }
@@ -413,7 +415,7 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
             }
 
         } catch (error) {
-            console.error('Error in conversion process:', error);
+            logger.error('Error in conversion process:', error);
             new Notice(`Conversion failed: ${this.getErrorMessage(error)}`);
         } finally {
             this.isConverting = false;
@@ -434,22 +436,21 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
             return cleanPath;
         }
 
+        // Get the vault's filesystem base path. On desktop the adapter is
+        // FileSystemAdapter (with getBasePath); on mobile it isn't, and we
+        // simply have no filesystem path to anchor against.
+        const adapter = this.app.vault.adapter;
+        const basePath = adapter instanceof FileSystemAdapter ? adapter.getBasePath() : '';
+
         // Handle Obsidian-style paths (relative to vault)
         if (cleanPath.startsWith('./') || cleanPath.startsWith('../')) {
             // Resolve relative to current file
             const currentDir = this.currentFile?.parent?.path || '';
-            return join(
-                (this.app.vault.adapter as any).basePath || '',
-                currentDir,
-                cleanPath
-            );
+            return join(basePath, currentDir, cleanPath);
         }
 
         // Default: resolve relative to vault root
-        return join(
-            (this.app.vault.adapter as any).basePath || '',
-            cleanPath
-        );
+        return join(basePath, cleanPath);
     }
 
     private generateFileName(propertyKey: string, localPath: string): string {

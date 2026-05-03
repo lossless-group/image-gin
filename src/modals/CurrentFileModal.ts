@@ -1,9 +1,13 @@
-import { App, Modal, Setting, Notice, TFile } from 'obsidian';
-import ImageGinPlugin from '../../main';
+import { logger } from '../utils/logger';
+import type { App, TFile } from 'obsidian';
+import { Modal, Setting, Notice } from 'obsidian';
+import type ImageGinPlugin from '../../main';
 import { extractFrontmatter, formatFrontmatter, updateFileFrontmatter } from '../utils/yamlFrontmatter';
 import { RecraftImageService } from '../services/recraftImageService';
+import type { RecraftStyleParams } from '../services/recraftImageService';
 import { STYLE_OPTIONS } from '../settings/settings';
 import type { ImageSize } from '../types';
+import { asString } from '../utils/coerce';
 
 export function openCurrentFileModal(
     app: App, 
@@ -46,11 +50,14 @@ export class CurrentFileModal extends Modal {
             const content = await this.app.vault.read(this.currentFile);
             const frontmatter = extractFrontmatter(content);
             
-            if (frontmatter && frontmatter[this.plugin.settings.imagePromptKey]) {
-                this.imagePrompt = frontmatter[this.plugin.settings.imagePromptKey];
+            if (frontmatter) {
+                const existing = asString(frontmatter[this.plugin.settings.imagePromptKey]);
+                if (existing) {
+                    this.imagePrompt = existing;
+                }
             }
         } catch (error) {
-            console.error('Error loading existing prompt:', error);
+            logger.error('Error loading existing prompt:', error);
         }
     }
 
@@ -121,15 +128,15 @@ export class CurrentFileModal extends Modal {
                 .addToggle(toggle => {
                     toggle.setValue(this.selectedSizes.has(size.id));
                     toggle.onChange((value) => {
-                        console.log(`Toggle changed for ${size.id}: ${value}`);
+                        logger.info(`Toggle changed for ${size.id}: ${value}`);
                         if (value) {
                             this.selectedSizes.add(size.id);
-                            console.log('Added to selectedSizes:', size.id);
+                            logger.info('Added to selectedSizes:', size.id);
                         } else {
                             this.selectedSizes.delete(size.id);
-                            console.log('Removed from selectedSizes:', size.id);
+                            logger.info('Removed from selectedSizes:', size.id);
                         }
-                        console.log('Current selectedSizes:', Array.from(this.selectedSizes));
+                        logger.info('Current selectedSizes:', Array.from(this.selectedSizes));
                     });
                 });
         });
@@ -209,7 +216,7 @@ export class CurrentFileModal extends Modal {
         });
 
         generateBtn.addEventListener('click', () => {
-            this.handleGenerate();
+            void this.handleGenerate();
         });
     }
 
@@ -246,10 +253,10 @@ export class CurrentFileModal extends Modal {
 
             // Get selected sizes
             const availableSizes = this.plugin.settings.imageSizes || [];
-            console.log('Available sizes:', availableSizes.map(s => s.id));
-            console.log('Selected sizes:', Array.from(this.selectedSizes));
+            logger.info('Available sizes:', availableSizes.map(s => s.id));
+            logger.info('Selected sizes:', Array.from(this.selectedSizes));
             const sizesToGenerate = availableSizes.filter(size => this.selectedSizes.has(size.id));
-            console.log('Sizes to generate:', sizesToGenerate.map(s => s.id));
+            logger.info('Sizes to generate:', sizesToGenerate.map(s => s.id));
 
             // Prepare style parameters
             const styleParams = this.getStyleParams();
@@ -281,7 +288,7 @@ export class CurrentFileModal extends Modal {
 
                     new Notice(`${size.label} image generated successfully`);
                 } catch (error) {
-                    console.error(`Error generating ${size.label} image:`, error);
+                    logger.error(`Error generating ${size.label} image:`, error);
                     new Notice(`Failed to generate ${size.label} image: ${this.getErrorMessage(error)}`);
                 }
             }
@@ -290,7 +297,7 @@ export class CurrentFileModal extends Modal {
             this.close();
 
         } catch (error) {
-            console.error('Error in image generation process:', error);
+            logger.error('Error in image generation process:', error);
             new Notice(`Error: ${this.getErrorMessage(error)}`);
         } finally {
             this.isGenerating = false;
@@ -298,41 +305,33 @@ export class CurrentFileModal extends Modal {
         }
     }
 
-    private getStyleParams(): any {
+    private getStyleParams(): RecraftStyleParams {
         const styleSettings = this.plugin.settings.style;
-        
+
         // Try to use custom style from imageStylesJSON first
         try {
-            const customStyles = JSON.parse(this.plugin.settings.imageStylesJSON);
+            const customStyles: unknown = JSON.parse(this.plugin.settings.imageStylesJSON);
             if (Array.isArray(customStyles) && customStyles.length > 0) {
-                const firstStyle = customStyles[0];
-                if (firstStyle.id) {
-                    console.log('Using custom style ID:', firstStyle.id);
-                    return {
-                        style_id: firstStyle.id
-                    };
+                const firstStyle: unknown = customStyles[0];
+                if (firstStyle && typeof firstStyle === 'object' && 'id' in firstStyle && typeof firstStyle.id === 'string') {
+                    logger.info('Using custom style ID:', firstStyle.id);
+                    return { style_id: firstStyle.id };
                 }
             }
         } catch (error) {
-            console.warn('Failed to parse imageStylesJSON, falling back to preset styles:', error);
+            logger.warn('Failed to parse imageStylesJSON, falling back to preset styles:', error);
         }
-        
+
         // Fallback to preset styles
         if (styleSettings.useCustomStyle && styleSettings.customStyleId) {
-            return {
-                style_id: styleSettings.customStyleId
-            };
-        } else {
-            const params: any = {
-                style: styleSettings.presetStyle.base
-            };
-            
-            if (styleSettings.presetStyle.substyle) {
-                params.substyle = styleSettings.presetStyle.substyle;
-            }
-            
-            return params;
+            return { style_id: styleSettings.customStyleId };
         }
+
+        const params: RecraftStyleParams = { style: styleSettings.presetStyle.base };
+        if (styleSettings.presetStyle.substyle) {
+            params.substyle = styleSettings.presetStyle.substyle;
+        }
+        return params;
     }
 
     private async updateFrontmatter(): Promise<void> {
@@ -348,7 +347,7 @@ export class CurrentFileModal extends Modal {
             await updateFileFrontmatter(this.currentFile, formattedFrontmatter);
             
         } catch (error) {
-            console.error('Error updating frontmatter:', error);
+            logger.error('Error updating frontmatter:', error);
             throw new Error('Failed to update frontmatter');
         }
     }
@@ -366,7 +365,7 @@ export class CurrentFileModal extends Modal {
             await updateFileFrontmatter(this.currentFile, formattedFrontmatter);
             
         } catch (error) {
-            console.error('Error updating image path in frontmatter:', error);
+            logger.error('Error updating image path in frontmatter:', error);
             // Don't throw here as the image was still generated successfully
         }
     }

@@ -1,6 +1,8 @@
+import { logger } from '../utils/logger';
 import type { ImageSize } from '../types';
-import { App, PluginSettingTab, Setting, Notice } from 'obsidian';
-import ImageGinPlugin from '../../main';
+import type { App} from 'obsidian';
+import { PluginSettingTab, Setting, Notice } from 'obsidian';
+import type ImageGinPlugin from '../../main';
 
 export type BaseStyle = 'realistic_image' | 'digital_illustration' | 'vector_illustration' | 'icon';
 
@@ -291,7 +293,7 @@ export class ImageGinSettingTab extends PluginSettingTab {
         try {
             const stylesJson = JSON.parse(this.plugin.settings.imageStylesJSON);
             stylesTextArea.value = JSON.stringify(stylesJson, null, 2);
-        } catch (e) {
+        } catch {
             // If not valid JSON, display as is
             stylesTextArea.value = this.plugin.settings.imageStylesJSON;
         }
@@ -305,7 +307,7 @@ export class ImageGinSettingTab extends PluginSettingTab {
                 await this.plugin.saveSettings();
                 // Update the textarea with formatted JSON
                 stylesTextArea.value = JSON.stringify(JSON.parse(stylesTextArea.value), null, 2);
-            } catch (e) {
+            } catch {
                 // If invalid JSON, still save but don't format
                 this.plugin.settings.imageStylesJSON = stylesTextArea.value;
                 await this.plugin.saveSettings();
@@ -631,7 +633,7 @@ export class ImageGinSettingTab extends PluginSettingTab {
                             await cacheService.clearCache();
                             new Notice('Image cache cleared successfully');
                         } catch (error) {
-                            console.error('Failed to clear cache:', error);
+                            logger.error('Failed to clear cache:', error);
                             new Notice('Failed to clear image cache');
                         }
                     }));
@@ -644,24 +646,27 @@ export class ImageGinSettingTab extends PluginSettingTab {
             statsDiv.style.borderRadius = '5px';
             
             // Load and display cache stats
-            this.loadCacheStats(statsDiv);
+            void this.loadCacheStats(statsDiv);
         }
     }
 
     private async loadCacheStats(container: HTMLElement) {
+        container.empty();
         try {
             const { ImageCacheService } = await import('../services/imageCacheService');
             const cacheService = new ImageCacheService(this.app, this.plugin.settings);
             const stats = cacheService.getCacheStats();
-            
-            container.innerHTML = `
-                <div style="font-weight: bold; margin-bottom: 5px;">Cache Statistics</div>
-                <div>Files: ${stats.totalImages}</div>
-                <div>Size: ${stats.cacheSize}</div>
-            `;
+
+            const title = container.createDiv();
+            title.style.fontWeight = 'bold';
+            title.style.marginBottom = '5px';
+            title.setText('Cache Statistics');
+            container.createDiv({ text: `Files: ${stats.totalImages}` });
+            container.createDiv({ text: `Size: ${stats.cacheSize}` });
         } catch (error) {
-            console.error('Failed to load cache stats:', error);
-            container.innerHTML = '<div style="color: var(--text-error);">Failed to load cache statistics</div>';
+            logger.error('Failed to load cache stats:', error);
+            const errEl = container.createDiv({ text: 'Failed to load cache statistics' });
+            errEl.style.color = 'var(--text-error)';
         }
     }
 }

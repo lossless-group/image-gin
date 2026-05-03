@@ -1,5 +1,7 @@
-import { App, TFile, normalizePath, requestUrl } from 'obsidian';
-import { ImageGinSettings } from '../settings/settings';
+import { logger } from '../utils/logger';
+import type { App} from 'obsidian';
+import { TFile, normalizePath, requestUrl } from 'obsidian';
+import type { ImageGinSettings } from '../settings/settings';
 import { Notice } from 'obsidian';
 
 export interface CachedImage {
@@ -19,7 +21,7 @@ export class ImageCacheService {
         this.app = app;
         this.settings = settings;
         this.cacheFolder = this.settings.imageCache.cacheFolder;
-        this.ensureCacheFolder();
+        void this.ensureCacheFolder();
     }
 
     /**
@@ -35,7 +37,7 @@ export class ImageCacheService {
         } catch (error) {
             const msg = error instanceof Error ? error.message : String(error);
             if (!/already exists/i.test(msg)) {
-                console.error('Failed to create cache folder:', error);
+                logger.error('Failed to create cache folder:', error);
             }
         }
     }
@@ -109,7 +111,7 @@ export class ImageCacheService {
             
             return cachedImage;
         } catch (error) {
-            console.error('Failed to cache image:', error);
+            logger.error('Failed to cache image:', error);
             
             // Return uncached reference
             const uncachedImage: CachedImage = {
@@ -166,7 +168,7 @@ export class ImageCacheService {
             
             new Notice('Image cache cleared successfully');
         } catch (error) {
-            console.error('Failed to clear cache:', error);
+            logger.error('Failed to clear cache:', error);
             new Notice('Failed to clear image cache');
         }
     }
