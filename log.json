@@ -1,0 +1,204 @@
+[
+  {
+    "timestamp": "2026-05-03T18:39:53.224Z",
+    "level": "info",
+    "message": "=== Ideogram Generate Request ==="
+  },
+  {
+    "timestamp": "2026-05-03T18:39:53.224Z",
+    "level": "info",
+    "message": "Aspect ratio:",
+    "details": "2x1"
+  },
+  {
+    "timestamp": "2026-05-03T18:39:53.224Z",
+    "level": "info",
+    "message": "Rendering speed:",
+    "details": "DEFAULT"
+  },
+  {
+    "timestamp": "2026-05-03T18:39:53.224Z",
+    "level": "info",
+    "message": "Style type:",
+    "details": "GENERAL"
+  },
+  {
+    "timestamp": "2026-05-03T18:39:53.224Z",
+    "level": "info",
+    "message": "Magic prompt:",
+    "details": "AUTO"
+  },
+  {
+    "timestamp": "2026-05-03T18:39:53.224Z",
+    "level": "info",
+    "message": "Has negative prompt:",
+    "details": true
+  },
+  {
+    "timestamp": "2026-05-03T18:39:53.224Z",
+    "level": "info",
+    "message": "Prompt preview:",
+    "details": "A big monitor displays several terminal windows open doing nerdy stuff. The u..."
+  },
+  {
+    "timestamp": "2026-05-03T18:40:00.346Z",
+    "level": "info",
+    "message": "Downloading Ideogram image from ephemeral URL"
+  },
+  {
+    "timestamp": "2026-05-03T18:57:23.672Z",
+    "level": "info",
+    "message": "=== Ideogram Generate Request ==="
+  },
+  {
+    "timestamp": "2026-05-03T18:57:23.672Z",
+    "level": "info",
+    "message": "Aspect ratio:",
+    "details": "2x1"
+  },
+  {
+    "timestamp": "2026-05-03T18:57:23.673Z",
+    "level": "info",
+    "message": "Rendering speed:",
+    "details": "DEFAULT"
+  },
+  {
+    "timestamp": "2026-05-03T18:57:23.673Z",
+    "level": "info",
+    "message": "Style type:",
+    "details": "GENERAL"
+  },
+  {
+    "timestamp": "2026-05-03T18:57:23.673Z",
+    "level": "info",
+    "message": "Magic prompt:",
+    "details": "AUTO"
+  },
+  {
+    "timestamp": "2026-05-03T18:57:23.673Z",
+    "level": "info",
+    "message": "Has negative prompt:",
+    "details": true
+  },
+  {
+    "timestamp": "2026-05-03T18:57:23.673Z",
+    "level": "info",
+    "message": "Prompt preview:",
+    "details": "A big monitor displays several terminal windows open doing nerdy stuff. The u..."
+  },
+  {
+    "timestamp": "2026-05-03T18:57:31.881Z",
+    "level": "info",
+    "message": "Downloading Ideogram image from ephemeral URL"
+  },
+  {
+    "timestamp": "2026-05-03T18:57:32.925Z",
+    "level": "info",
+    "message": "Downloaded image bytes:",
+    "details": 1201475
+  },
+  {
+    "timestamp": "2026-05-03T18:57:32.930Z",
+    "level": "info",
+    "message": "=== Ideogram Generate Request ==="
+  },
+  {
+    "timestamp": "2026-05-03T18:57:32.930Z",
+    "level": "info",
+    "message": "Aspect ratio:",
+    "details": "1x2"
+  },
+  {
+    "timestamp": "2026-05-03T18:57:32.930Z",
+    "level": "info",
+    "message": "Rendering speed:",
+    "details": "DEFAULT"
+  },
+  {
+    "timestamp": "2026-05-03T18:57:32.930Z",
+    "level": "info",
+    "message": "Style type:",
+    "details": "GENERAL"
+  },
+  {
+    "timestamp": "2026-05-03T18:57:32.930Z",
+    "level": "info",
+    "message": "Magic prompt:",
+    "details": "AUTO"
+  },
+  {
+    "timestamp": "2026-05-03T18:57:32.930Z",
+    "level": "info",
+    "message": "Has negative prompt:",
+    "details": true
+  },
+  {
+    "timestamp": "2026-05-03T18:57:32.930Z",
+    "level": "info",
+    "message": "Prompt preview:",
+    "details": "A big monitor displays several terminal windows open doing nerdy stuff. The u..."
+  },
+  {
+    "timestamp": "2026-05-03T18:57:39.814Z",
+    "level": "info",
+    "message": "Downloading Ideogram image from ephemeral URL"
+  },
+  {
+    "timestamp": "2026-05-03T18:57:40.661Z",
+    "level": "info",
+    "message": "Downloaded image bytes:",
+    "details": 1066129
+  },
+  {
+    "timestamp": "2026-05-03T18:57:40.666Z",
+    "level": "info",
+    "message": "=== Ideogram Generate Request ==="
+  },
+  {
+    "timestamp": "2026-05-03T18:57:40.666Z",
+    "level": "info",
+    "message": "Aspect ratio:",
+    "details": "1x1"
+  },
+  {
+    "timestamp": "2026-05-03T18:57:40.666Z",
+    "level": "info",
+    "message": "Rendering speed:",
+    "details": "DEFAULT"
+  },
+  {
+    "timestamp": "2026-05-03T18:57:40.667Z",
+    "level": "info",
+    "message": "Style type:",
+    "details": "GENERAL"
+  },
+  {
+    "timestamp": "2026-05-03T18:57:40.667Z",
+    "level": "info",
+    "message": "Magic prompt:",
+    "details": "AUTO"
+  },
+  {
+    "timestamp": "2026-05-03T18:57:40.667Z",
+    "level": "info",
+    "message": "Has negative prompt:",
+    "details": true
+  },
+  {
+    "timestamp": "2026-05-03T18:57:40.667Z",
+    "level": "info",
+    "message": "Prompt preview:",
+    "details": "A big monitor displays several terminal windows open doing nerdy stuff. The u..."
+  },
+  {
+    "timestamp": "2026-05-03T18:57:47.606Z",
+    "level": "info",
+    "message": "Downloading Ideogram image from ephemeral URL"
+  },
+  {
+    "timestamp": "2026-05-03T18:57:48.473Z",
+    "level": "info",
+    "message": "Downloaded image bytes:",
+    "details": 1140745
+  }
+]

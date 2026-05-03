@@ -88,6 +88,34 @@ export interface MagnificSettings {
     defaultImageCount: number;
 }
 
+export type IdeogramRenderingSpeed = 'FLASH' | 'TURBO' | 'DEFAULT' | 'QUALITY';
+export type IdeogramStyleType = 'AUTO' | 'GENERAL' | 'REALISTIC' | 'DESIGN' | 'FICTION';
+export type IdeogramMagicPrompt = 'AUTO' | 'ON' | 'OFF';
+
+export const IDEOGRAM_RENDERING_SPEEDS: IdeogramRenderingSpeed[] = ['FLASH', 'TURBO', 'DEFAULT', 'QUALITY'];
+export const IDEOGRAM_STYLE_TYPES: IdeogramStyleType[] = ['AUTO', 'GENERAL', 'REALISTIC', 'DESIGN', 'FICTION'];
+export const IDEOGRAM_MAGIC_PROMPTS: IdeogramMagicPrompt[] = ['AUTO', 'ON', 'OFF'];
+
+export interface IdeogramBrandTemplate {
+    prefix: string;
+    suffix: string;
+    baseNegativePrompt: string;
+}
+
+export interface IdeogramDefaults {
+    renderingSpeed: IdeogramRenderingSpeed;
+    styleType: IdeogramStyleType;
+    magicPrompt: IdeogramMagicPrompt;
+}
+
+export interface IdeogramSettings {
+    enabled: boolean;
+    apiKey: string;
+    brandTemplate: IdeogramBrandTemplate;
+    defaults: IdeogramDefaults;
+    layerizeText: boolean;
+}
+
 export interface ImageCacheSettings {
     enabled: boolean;
     cacheFolder: string;
@@ -111,6 +139,7 @@ export interface ImageGinSettings {
     imageOutputFolder: string;
     imageKit: ImageKitSettings;
     magnific: MagnificSettings;
+    ideogram: IdeogramSettings;
     imageCache: ImageCacheSettings;
 }
 
@@ -163,6 +192,21 @@ export const DEFAULT_SETTINGS: ImageGinSettings = {
         apiKey: '',
         defaultLicense: 'freemium',
         defaultImageCount: 10,
+    },
+    ideogram: {
+        enabled: false,
+        apiKey: '',
+        brandTemplate: {
+            prefix: '',
+            suffix: '',
+            baseNegativePrompt: 'no text, no watermarks, no signatures, no captions',
+        },
+        defaults: {
+            renderingSpeed: 'DEFAULT',
+            styleType: 'GENERAL',
+            magicPrompt: 'AUTO',
+        },
+        layerizeText: false,
     },
     imageCache: {
         enabled: true,
@@ -542,6 +586,143 @@ export class ImageGinSettingTab extends PluginSettingTab {
                     .setDynamicTooltip()
                     .onChange(async (value) => {
                         this.plugin.settings.magnific.defaultImageCount = value;
+                        await this.plugin.saveSettings();
+                    }));
+        }
+
+        // === IDEOGRAM IMAGE GENERATION SETTINGS ===
+        containerEl.createEl('h2', { text: '🖼️ Ideogram Image Generation' });
+
+        new Setting(containerEl)
+            .setName('Enable Ideogram Integration')
+            .setDesc('Generate images via Ideogram v3 with brand-template prompt wrapping')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.ideogram.enabled)
+                .onChange(async (value) => {
+                    this.plugin.settings.ideogram.enabled = value;
+                    await this.plugin.saveSettings();
+                    this.display();
+                }));
+
+        if (this.plugin.settings.ideogram.enabled) {
+            new Setting(containerEl)
+                .setName('Ideogram API Key')
+                .setDesc('Your Ideogram API key (sent as the Api-Key header)')
+                .addText(text => text
+                    .setPlaceholder('Enter your Ideogram API key')
+                    .setValue(this.plugin.settings.ideogram.apiKey)
+                    .onChange(async (value) => {
+                        this.plugin.settings.ideogram.apiKey = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            containerEl.createEl('h3', { text: 'Brand Template' });
+            containerEl.createEl('p', {
+                text: 'Wraps every per-file prompt with brand voice. Use {prompt} in the prefix to control where the per-file prompt is inserted; otherwise the prefix is prepended and the suffix appended.',
+                cls: 'setting-item-description'
+            });
+
+            const renderTextarea = (
+                name: string,
+                desc: string,
+                placeholder: string,
+                getValue: () => string,
+                setValue: (value: string) => Promise<void>
+            ): void => {
+                const setting = new Setting(containerEl).setName(name).setDesc(desc);
+                const textarea = document.createElement('textarea');
+                textarea.rows = 3;
+                textarea.style.width = '100%';
+                textarea.style.fontFamily = 'monospace';
+                textarea.placeholder = placeholder;
+                textarea.value = getValue();
+                textarea.addEventListener('input', async () => {
+                    await setValue(textarea.value);
+                });
+                setting.settingEl.appendChild(textarea);
+            };
+
+            renderTextarea(
+                'Prompt prefix',
+                'Inserted before the per-file prompt (or in place of {prompt} if used)',
+                'Editorial illustration in our house style: {prompt}, on a soft pastel background',
+                () => this.plugin.settings.ideogram.brandTemplate.prefix,
+                async (value) => {
+                    this.plugin.settings.ideogram.brandTemplate.prefix = value;
+                    await this.plugin.saveSettings();
+                }
+            );
+
+            renderTextarea(
+                'Prompt suffix',
+                'Appended after the per-file prompt (ignored if prefix contains {prompt})',
+                'viewed from above, soft natural lighting',
+                () => this.plugin.settings.ideogram.brandTemplate.suffix,
+                async (value) => {
+                    this.plugin.settings.ideogram.brandTemplate.suffix = value;
+                    await this.plugin.saveSettings();
+                }
+            );
+
+            renderTextarea(
+                'Base negative prompt',
+                'Always-applied exclusions; per-file image_negative_prompt is appended',
+                'no text, no watermarks, no signatures, no captions',
+                () => this.plugin.settings.ideogram.brandTemplate.baseNegativePrompt,
+                async (value) => {
+                    this.plugin.settings.ideogram.brandTemplate.baseNegativePrompt = value;
+                    await this.plugin.saveSettings();
+                }
+            );
+
+            containerEl.createEl('h3', { text: 'Defaults' });
+
+            new Setting(containerEl)
+                .setName('Rendering speed')
+                .setDesc('Cost/quality tradeoff. QUALITY costs the most.')
+                .addDropdown(dropdown => {
+                    for (const v of IDEOGRAM_RENDERING_SPEEDS) dropdown.addOption(v, v);
+                    dropdown
+                        .setValue(this.plugin.settings.ideogram.defaults.renderingSpeed)
+                        .onChange(async (value) => {
+                            this.plugin.settings.ideogram.defaults.renderingSpeed = value as IdeogramRenderingSpeed;
+                            await this.plugin.saveSettings();
+                        });
+                });
+
+            new Setting(containerEl)
+                .setName('Style type')
+                .setDesc('Coarse style category. Per-file image_style_type frontmatter overrides this.')
+                .addDropdown(dropdown => {
+                    for (const v of IDEOGRAM_STYLE_TYPES) dropdown.addOption(v, v);
+                    dropdown
+                        .setValue(this.plugin.settings.ideogram.defaults.styleType)
+                        .onChange(async (value) => {
+                            this.plugin.settings.ideogram.defaults.styleType = value as IdeogramStyleType;
+                            await this.plugin.saveSettings();
+                        });
+                });
+
+            new Setting(containerEl)
+                .setName('Magic prompt')
+                .setDesc('Whether Ideogram is allowed to rewrite your prompt. OFF preserves brand voice exactly.')
+                .addDropdown(dropdown => {
+                    for (const v of IDEOGRAM_MAGIC_PROMPTS) dropdown.addOption(v, v);
+                    dropdown
+                        .setValue(this.plugin.settings.ideogram.defaults.magicPrompt)
+                        .onChange(async (value) => {
+                            this.plugin.settings.ideogram.defaults.magicPrompt = value as IdeogramMagicPrompt;
+                            await this.plugin.saveSettings();
+                        });
+                });
+
+            new Setting(containerEl)
+                .setName('Layerize text after generate')
+                .setDesc('Run the Layerize Text endpoint to strip incidental text. Modal can override per-call.')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.ideogram.layerizeText)
+                    .onChange(async (value) => {
+                        this.plugin.settings.ideogram.layerizeText = value;
                         await this.plugin.saveSettings();
                     }));
         }
