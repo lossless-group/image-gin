@@ -2,7 +2,6 @@ import { logger } from '../utils/logger';
 import type { App, TFile } from 'obsidian';
 import { Modal, Setting, Notice } from 'obsidian';
 import type ImageGinPlugin from '../../main';
-import { extractFrontmatter, formatFrontmatter, updateFileFrontmatter } from '../utils/yamlFrontmatter';
 import { RecraftImageService } from '../services/recraftImageService';
 import type { RecraftStyleParams } from '../services/recraftImageService';
 import { STYLE_OPTIONS } from '../settings/settings';
@@ -47,14 +46,15 @@ export class CurrentFileModal extends Modal {
         if (!this.currentFile) return;
 
         try {
-            const content = await this.app.vault.read(this.currentFile);
-            const frontmatter = extractFrontmatter(content);
-            
-            if (frontmatter) {
-                const existing = asString(frontmatter[this.plugin.settings.imagePromptKey]);
-                if (existing) {
-                    this.imagePrompt = existing;
-                }
+            // Use Obsidian's metadata cache instead of reading + parsing the
+            // file ourselves. The cache is populated from Obsidian's own YAML
+            // parser (correct on multi-line strings, URL values with colons,
+            // anchors, etc.) and avoids a vault.read for a value we may not
+            // even use.
+            const frontmatter = this.app.metadataCache.getFileCache(this.currentFile)?.frontmatter;
+            const existing = asString(frontmatter?.[this.plugin.settings.imagePromptKey]);
+            if (existing) {
+                this.imagePrompt = existing;
             }
         } catch (error) {
             logger.error('Error loading existing prompt:', error);
@@ -336,16 +336,18 @@ export class CurrentFileModal extends Modal {
 
     private async updateFrontmatter(): Promise<void> {
         if (!this.currentFile) return;
+        const file = this.currentFile;
+        const key = this.plugin.settings.imagePromptKey;
+        const value = this.imagePrompt;
 
         try {
-            const content = await this.app.vault.read(this.currentFile);
-            const frontmatter = extractFrontmatter(content) || {};
-            
-            frontmatter[this.plugin.settings.imagePromptKey] = this.imagePrompt;
-            
-            const formattedFrontmatter = formatFrontmatter(frontmatter);
-            await updateFileFrontmatter(this.currentFile, formattedFrontmatter);
-            
+            // processFrontMatter reads, mutates, and writes atomically via
+            // Obsidian's own YAML emitter — handles edge cases (URL values,
+            // multi-line strings, list-of-maps) the old hand-rolled emitter
+            // mishandled.
+            await this.app.fileManager.processFrontMatter(file, (fm) => {
+                fm[key] = value;
+            });
         } catch (error) {
             logger.error('Error updating frontmatter:', error);
             throw new Error('Failed to update frontmatter');
@@ -354,16 +356,12 @@ export class CurrentFileModal extends Modal {
 
     private async updateImagePathInFrontmatter(yamlKey: string, imagePath: string): Promise<void> {
         if (!this.currentFile) return;
+        const file = this.currentFile;
 
         try {
-            const content = await this.app.vault.read(this.currentFile);
-            const frontmatter = extractFrontmatter(content) || {};
-            
-            frontmatter[yamlKey] = imagePath;
-            
-            const formattedFrontmatter = formatFrontmatter(frontmatter);
-            await updateFileFrontmatter(this.currentFile, formattedFrontmatter);
-            
+            await this.app.fileManager.processFrontMatter(file, (fm) => {
+                fm[yamlKey] = imagePath;
+            });
         } catch (error) {
             logger.error('Error updating image path in frontmatter:', error);
             // Don't throw here as the image was still generated successfully

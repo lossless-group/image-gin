@@ -2,7 +2,6 @@ import { logger } from '../utils/logger';
 import type { App, TFile } from 'obsidian';
 import { Modal, Setting, Notice, FileSystemAdapter } from 'obsidian';
 import type ImageGinPlugin from '../../main';
-import { extractFrontmatter, formatFrontmatter } from '../utils/yamlFrontmatter';
 import { ImageKitService } from '../services/imagekitService';
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -69,13 +68,19 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
         if (!this.currentFile) return;
 
         try {
+            // Frontmatter via Obsidian's metadata cache — correct on URL
+            // values, multi-line strings, etc.; doesn't require us to also
+            // parse YAML by hand.
+            const frontmatter = this.app.metadataCache.getFileCache(this.currentFile)?.frontmatter;
+
+            // Body content is read separately because we still need to scan
+            // it for `![[...]]` image links.
             const content = await this.app.vault.read(this.currentFile);
-            const frontmatter = extractFrontmatter(content);
-            
+
             // Reset properties
             this.imageProperties = [];
             this.markdownImagePaths = [];
-            
+
             // 1. Analyze frontmatter
             if (frontmatter) {
                 for (const property of this.IMAGE_PROPERTIES) {
@@ -90,7 +95,7 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
                     }
                 }
             }
-            
+
             // 2. Find all markdown image links in content
             const markdownContent = content.replace(/^---[\s\S]*?---/g, ''); // Remove frontmatter
             const imageRegex = /!\[\[([^\]]+)\]\]/g;
@@ -279,13 +284,22 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
         this.isConverting = true;
         this.showProgress();
 
+        const file = this.currentFile;
+
         try {
             const imagekitService = new ImageKitService(this.plugin.settings);
-            
-            // Get current content
-            let content = await this.app.vault.read(this.currentFile);
-            const frontmatter = extractFrontmatter(content) || {};
-            let markdownContent = content.replace(/^---[\s\S]*?---/g, ''); // Remove frontmatter
+
+            // Read frontmatter via the metadata cache for tag extraction.
+            // Frontmatter mutations below go through processFrontMatter
+            // (atomic per-call), so we never serialize YAML by hand.
+            const cachedFrontmatter = this.app.metadataCache.getFileCache(file)?.frontmatter;
+
+            // Body mutations are accumulated and flushed in a single
+            // vault.read + vault.modify cycle after all uploads are done.
+            // This keeps frontmatter writes (processFrontMatter) and body
+            // writes (vault.modify) on separate code paths so neither
+            // serializes the other's domain.
+            const bodyMutations: Array<{ from: string; to: string }> = [];
 
             let successCount = 0;
             let errorCount = 0;
@@ -297,17 +311,17 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
 
                 try {
                     this.updateProgress(`Converting ${property.key}...`);
-                    
+
                     // Read the local file
                     const localPath = this.resolveLocalPath(property.value);
                     const fileBuffer = readFileSync(localPath);
-                    
+
                     // Extract tags from frontmatter for ImageKit
-                    const tags = imagekitService.extractTagsFromFrontmatter(frontmatter);
-                    
+                    const tags = imagekitService.extractTagsFromFrontmatter(cachedFrontmatter);
+
                     // Generate filename
                     const fileName = this.generateFileName(property.key, localPath);
-                    
+
                     // Upload to ImageKit
                     const uploadResult = await imagekitService.uploadFile(
                         fileBuffer.buffer,
@@ -316,9 +330,11 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
                         tags
                     );
 
-                    // Update frontmatter with ImageKit URL
-                    frontmatter[property.key] = uploadResult.url;
-                    
+                    // Update frontmatter with ImageKit URL via Obsidian's API
+                    await this.app.fileManager.processFrontMatter(file, (fm) => {
+                        fm[property.key] = uploadResult.url;
+                    });
+
                     logger.info(`Successfully converted ${property.key}: ${uploadResult.url}`);
                     successCount++;
 
@@ -344,35 +360,35 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
             for (const imagePath of this.selectedMarkdownImages) {
                 try {
                     this.updateProgress(`Converting markdown image: ${imagePath}...`);
-                    
+
                     // Find the full match for this path
                     const imageInfo = this.markdownImagePaths.find(img => img.path === imagePath);
                     if (!imageInfo) continue;
-                    
+
                     // Read the local file
                     const localPath = this.resolveLocalPath(imagePath);
                     const fileBuffer = readFileSync(localPath);
-                    
+
                     // Generate a unique filename
                     const fileName = this.generateFileName('content', localPath);
-                    
+
                     // Upload to ImageKit
                     const uploadResult = await imagekitService.uploadFile(
                         fileBuffer.buffer,
                         fileName,
                         undefined, // Use default folder from settings
-                        [this.currentFile.basename, 'markdown'] // Basic tags
+                        [file.basename, 'markdown'] // Basic tags
                     );
-                    
-                    // Replace the markdown image with the new URL
-                    markdownContent = markdownContent.replace(
-                        new RegExp(this.escapeRegExp(imageInfo.match), 'g'),
-                        `![](${uploadResult.url})`
-                    );
-                    
+
+                    // Queue the body replacement for the post-loop flush.
+                    bodyMutations.push({
+                        from: imageInfo.match,
+                        to: `![](${uploadResult.url})`,
+                    });
+
                     logger.info(`Successfully converted markdown image: ${uploadResult.url}`);
                     successCount++;
-                    
+
                     // Optionally remove local file if setting is enabled
                     if (this.plugin.settings.imageKit.removeLocalFiles) {
                         try {
@@ -383,7 +399,7 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
                             logger.warn(`Failed to remove local file ${localPath}:`, removeError);
                         }
                     }
-                    
+
                 } catch (error) {
                     logger.error(`Error converting markdown image ${imagePath}:`, error);
                     errorCount++;
@@ -391,19 +407,18 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
                 }
             }
 
-            // Update file with converted content
-            if (successCount > 0) {
-                let newContent = '';
-                
-                // Reconstruct the file with updated frontmatter and content
-                if (Object.keys(frontmatter).length > 0) {
-                    const formattedFrontmatter = formatFrontmatter(frontmatter);
-                    newContent = `---\n${formattedFrontmatter}---\n\n${markdownContent}`;
-                } else {
-                    newContent = markdownContent;
+            // Flush body mutations in a single read/modify cycle. Frontmatter
+            // is already updated above via processFrontMatter, so we re-read
+            // here to pick up the latest version (including those updates).
+            if (bodyMutations.length > 0) {
+                const currentContent = await this.app.vault.read(file);
+                let updated = currentContent;
+                for (const { from, to } of bodyMutations) {
+                    updated = updated.replace(new RegExp(this.escapeRegExp(from), 'g'), to);
                 }
-                
-                await this.app.vault.modify(this.currentFile, newContent);
+                if (updated !== currentContent) {
+                    await this.app.vault.modify(file, updated);
+                }
             }
 
             // Show results
