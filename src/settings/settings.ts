@@ -81,6 +81,15 @@ export interface ImageKitSettings {
     convertToWebp: boolean;
 }
 
+// Captures the Recraft modal's last-used UI choices so the next open
+// restores them. Recraft has no per-call style overrides (style is
+// configured in settings), so this is intentionally smaller than
+// IdeogramSessionState.
+export interface RecraftSessionState {
+    selectedSizes: string[];
+    writeToFrontmatter: boolean;
+}
+
 export interface MagnificSettings {
     enabled: boolean;
     apiKey: string;
@@ -108,12 +117,27 @@ export interface IdeogramDefaults {
     magicPrompt: IdeogramMagicPrompt;
 }
 
+// Captures the modal's last-used choices so the next open feels like
+// "where I left off." Stored alongside settings via Obsidian's saveData
+// (no separate persistence layer). Per-file content (image_prompt,
+// negative_prompt) is intentionally NOT saved here — those live in
+// frontmatter and would mislead across files.
+export interface IdeogramSessionState {
+    selectedSizes: string[];
+    styleType: IdeogramStyleType;
+    renderingSpeed: IdeogramRenderingSpeed;
+    magicPrompt: IdeogramMagicPrompt;
+    layerizeText: boolean;
+    writeToFrontmatter: boolean;
+}
+
 export interface IdeogramSettings {
     enabled: boolean;
     apiKey: string;
     brandTemplate: IdeogramBrandTemplate;
     defaults: IdeogramDefaults;
     layerizeText: boolean;
+    lastSession: IdeogramSessionState;
 }
 
 export interface ImageCacheSettings {
@@ -141,6 +165,7 @@ export interface ImageGinSettings {
     magnific: MagnificSettings;
     ideogram: IdeogramSettings;
     imageCache: ImageCacheSettings;
+    recraftLastSession: RecraftSessionState;
 }
 
 // Default style configuration
@@ -207,6 +232,14 @@ export const DEFAULT_SETTINGS: ImageGinSettings = {
             magicPrompt: 'AUTO',
         },
         layerizeText: false,
+        lastSession: {
+            selectedSizes: [],
+            styleType: 'GENERAL',
+            renderingSpeed: 'DEFAULT',
+            magicPrompt: 'AUTO',
+            layerizeText: false,
+            writeToFrontmatter: true,
+        },
     },
     imageCache: {
         enabled: true,
@@ -214,6 +247,10 @@ export const DEFAULT_SETTINGS: ImageGinSettings = {
         maxCacheSize: 100, // 100 MB
         autoCleanup: true,
         cleanupDays: 30,
+    },
+    recraftLastSession: {
+        selectedSizes: [],
+        writeToFrontmatter: true,
     },
 };
 
@@ -617,9 +654,23 @@ export class ImageGinSettingTab extends PluginSettingTab {
                     }));
 
             containerEl.createEl('h3', { text: 'Brand Template' });
-            containerEl.createEl('p', {
-                text: 'Wraps every per-file prompt with brand voice. Use {prompt} in the prefix to control where the per-file prompt is inserted; otherwise the prefix is prepended and the suffix appended.',
-                cls: 'setting-item-description'
+            const brandIntro = containerEl.createDiv({ cls: 'setting-item-description' });
+            brandIntro.createEl('p', {
+                text: 'Prepends/appends fixed text to every per-file prompt so all generated images share a consistent style. The per-file prompt itself is the file\'s image_prompt frontmatter (or whatever you type in the modal). There are two assembly patterns:',
+            });
+            const list = brandIntro.createEl('ol');
+            const li1 = list.createEl('li');
+            li1.createEl('strong', { text: 'Bookends ' });
+            li1.appendText('— leave both fields as plain text. The prefix goes before the per-file prompt and the suffix goes after. Final = ');
+            li1.createEl('code', { text: 'prefix + per-file prompt + suffix' });
+            li1.appendText('. Good when your style guide naturally brackets the subject (e.g. prefix = "Editorial illustration of:", suffix = "in our house style, soft pastel background").');
+            const li2 = list.createEl('li');
+            li2.createEl('strong', { text: 'Slot insertion ' });
+            li2.appendText('— include the literal token ');
+            li2.createEl('code', { text: '{prompt}' });
+            li2.appendText(' somewhere in the prefix. The per-file prompt is substituted at that exact position and the suffix is ignored. Good when the per-file prompt needs to land mid-sentence (e.g. prefix = "Editorial illustration in our house style: {prompt}, on a soft pastel background").');
+            brandIntro.createEl('p', {
+                text: 'Use the modal\'s Resolved Prompt Preview to see exactly what gets sent to Ideogram before generating.',
             });
 
             const renderTextarea = (
@@ -643,9 +694,9 @@ export class ImageGinSettingTab extends PluginSettingTab {
             };
 
             renderTextarea(
-                'Prompt prefix',
-                'Inserted before the per-file prompt (or in place of {prompt} if used)',
-                'Editorial illustration in our house style: {prompt}, on a soft pastel background',
+                'Prompt prefix — Style Notes',
+                'What this is for: the visual style every image should share — illustration approach, palette mood, line/texture qualities, composition feel. Plain text → prepended. Contains {prompt} → the per-file subject is substituted at that exact position and the suffix is ignored.',
+                'e.g. Style Notes: Comic-book editorial illustration in a clean modern style: {prompt}. Vibrant flat colors, slight halftone texture, confident inked outlines, dynamic composition.',
                 () => this.plugin.settings.ideogram.brandTemplate.prefix,
                 async (value) => {
                     this.plugin.settings.ideogram.brandTemplate.prefix = value;
@@ -654,9 +705,9 @@ export class ImageGinSettingTab extends PluginSettingTab {
             );
 
             renderTextarea(
-                'Prompt suffix',
-                'Appended after the per-file prompt (ignored if prefix contains {prompt})',
-                'viewed from above, soft natural lighting',
+                'Prompt suffix — Brand Alignment',
+                'What this is for: brand-specific constraints layered on top of the style — exact colors with hex values, recurring motifs, lighting/mood rules that should always hold. Appended after the per-file prompt. Ignored when the prefix already uses {prompt}.',
+                'e.g. Brand Alignment: Include colors {list colors and hex values}, with green and blue being more background ambient colors to keep the feel aligned with brand',
                 () => this.plugin.settings.ideogram.brandTemplate.suffix,
                 async (value) => {
                     this.plugin.settings.ideogram.brandTemplate.suffix = value;
@@ -666,8 +717,8 @@ export class ImageGinSettingTab extends PluginSettingTab {
 
             renderTextarea(
                 'Base negative prompt',
-                'Always-applied exclusions; per-file image_negative_prompt is appended',
-                'no text, no watermarks, no signatures, no captions',
+                'What this is for: things you never want in any generated image (text overlays, watermarks, off-brand imagery). Always sent. The per-file image_negative_prompt frontmatter, if set, is appended.',
+                'e.g. no text, no watermarks, no signatures, no captions, no stock-photo aesthetic',
                 () => this.plugin.settings.ideogram.brandTemplate.baseNegativePrompt,
                 async (value) => {
                     this.plugin.settings.ideogram.brandTemplate.baseNegativePrompt = value;

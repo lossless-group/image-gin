@@ -1,6 +1,7 @@
 import { logger } from '../utils/logger';
 import type { App, TFile } from 'obsidian';
 import { Modal, Setting, Notice } from 'obsidian';
+import type { ToggleComponent } from 'obsidian';
 import type ImageGinPlugin from '../../main';
 import { IdeogramService, pickAspectRatio } from '../services/ideogramService';
 import type { IdeogramGenerateOptions } from '../services/ideogramService';
@@ -23,7 +24,7 @@ export class IdeogramModal extends Modal {
 
     private imagePrompt: string = '';
     private selectedSizes: Set<string> = new Set();
-    private writeToFrontmatter: boolean = true;
+    private writeToFrontmatter: boolean;
 
     private styleType: IdeogramStyleType;
     private renderingSpeed: IdeogramRenderingSpeed;
@@ -36,17 +37,28 @@ export class IdeogramModal extends Modal {
     private progressEl: HTMLElement | null = null;
     private previewEl: HTMLElement | null = null;
 
+    // Refs for the master "select all sizes" toggle and per-size toggles,
+    // so the master and individuals stay in sync when either is clicked.
+    private masterSizeToggle: ToggleComponent | null = null;
+    private sizeToggles: Map<string, ToggleComponent> = new Map();
+
     constructor(app: App, plugin: ImageGinPlugin) {
         super(app);
         this.plugin = plugin;
         this.currentFile = this.app.workspace.getActiveFile();
 
-        const defaults = this.plugin.settings.ideogram.defaults;
-        this.styleType = defaults.styleType;
-        this.renderingSpeed = defaults.renderingSpeed;
-        this.magicPrompt = defaults.magicPrompt;
+        const session = this.plugin.settings.ideogram.lastSession;
+        const validSizeIds = new Set(this.plugin.settings.imageSizes.map(s => s.id));
+        for (const id of session.selectedSizes) {
+            if (validSizeIds.has(id)) this.selectedSizes.add(id);
+        }
+        this.styleType = session.styleType;
+        this.renderingSpeed = session.renderingSpeed;
+        this.magicPrompt = session.magicPrompt;
+        this.layerizeText = session.layerizeText;
+        this.writeToFrontmatter = session.writeToFrontmatter;
+
         this.negativePrompt = this.plugin.settings.ideogram.brandTemplate.baseNegativePrompt;
-        this.layerizeText = this.plugin.settings.ideogram.layerizeText;
         this.seed = undefined;
     }
 
@@ -55,17 +67,36 @@ export class IdeogramModal extends Modal {
         contentEl.empty();
         modalEl.addClass('image-gin-modal');
 
-        this.applyFrontmatterOverrides();
+        await this.applyFrontmatterOverrides();
         this.renderModalContent();
     }
 
-    private applyFrontmatterOverrides(): void {
+    private async applyFrontmatterOverrides(): Promise<void> {
         if (!this.currentFile) return;
-        const frontmatter = this.app.metadataCache.getFileCache(this.currentFile)?.frontmatter;
-        if (!frontmatter) return;
+        const file = this.currentFile;
+        const key = this.plugin.settings.imagePromptKey;
 
-        const existingPrompt = asString(frontmatter[this.plugin.settings.imagePromptKey]);
-        if (existingPrompt) this.imagePrompt = existingPrompt;
+        const frontmatter = this.app.metadataCache.getFileCache(file)?.frontmatter;
+        const rawPrompt = frontmatter?.[key];
+
+        if (rawPrompt === undefined) {
+            // Key absent. Create it with an empty value so the form is
+            // editing a real frontmatter property — first-time users see
+            // the plugin's convention surface in their file immediately
+            // rather than discovering it post-generate.
+            try {
+                await this.app.fileManager.processFrontMatter(file, (m) => {
+                    if (m[key] === undefined) m[key] = '';
+                });
+            } catch (error) {
+                logger.error('Error initializing image_prompt frontmatter:', error);
+            }
+        } else {
+            const existing = asString(rawPrompt);
+            if (existing) this.imagePrompt = existing;
+        }
+
+        if (!frontmatter) return;
 
         const fmStyleType = asString(frontmatter['image_style_type']);
         if (fmStyleType) {
@@ -105,13 +136,18 @@ export class IdeogramModal extends Modal {
     private renderPromptSection(containerEl: HTMLElement): void {
         const section = containerEl.createDiv('image-gin-section');
         const header = section.createDiv('image-gin-section-header');
-        header.createEl('span', { text: 'Image Prompt (subject matter)' });
+        header.createEl('span', { text: 'Image Prompt — Subject Matter' });
 
         const content = section.createDiv('image-gin-section-content');
+        const helpText = content.createEl('p', {
+            cls: 'setting-item-description',
+        });
+        helpText.appendText('Describe ONLY what is in the scene — characters, setting, action. Don\'t describe style or brand colors here; that\'s handled by Settings → Brand Template (prefix = Style Notes, suffix = Brand Alignment). The Resolved Prompt Preview below shows the final assembled prompt.');
+
         const textarea = content.createEl('textarea', {
             cls: 'image-gin-textarea',
             attr: {
-                placeholder: 'Enter the subject matter; brand template wraps it automatically',
+                placeholder: 'e.g. A series of robots representing AI Agents wearing construction work vests with "Agent" on the back, reviewing checklists at an industrial production line where code snippets and function names roll off instead of physical products',
                 rows: '4',
             },
         });
@@ -128,6 +164,17 @@ export class IdeogramModal extends Modal {
         header.createEl('span', { text: 'Resolved Prompt Preview' });
 
         const content = section.createDiv('image-gin-section-content');
+
+        const desc = content.createEl('p', { cls: 'setting-item-description' });
+        const { prefix, suffix } = this.plugin.settings.ideogram.brandTemplate;
+        if (!prefix && !suffix) {
+            desc.appendText('No brand template configured — your prompt is sent to Ideogram exactly as typed. Set a prefix/suffix in plugin settings to wrap it automatically.');
+        } else if (prefix.includes('{prompt}')) {
+            desc.appendText('Slot-insertion mode: your prompt is substituted into the prefix at the {prompt} token; suffix is ignored.');
+        } else {
+            desc.appendText('Bookend mode: prefix prepended, suffix appended (separated by spaces).');
+        }
+
         this.previewEl = content.createEl('pre', { cls: 'image-gin-preview' });
         this.previewEl.style.whiteSpace = 'pre-wrap';
         this.previewEl.style.padding = '8px';
@@ -156,7 +203,39 @@ export class IdeogramModal extends Modal {
     private renderSizeSection(containerEl: HTMLElement): void {
         const section = containerEl.createDiv('image-gin-section');
         const header = section.createDiv('image-gin-section-header');
+        header.style.display = 'flex';
+        header.style.justifyContent = 'space-between';
+        header.style.alignItems = 'center';
         header.createEl('span', { text: 'Image Sizes' });
+
+        const masterWrap = header.createDiv();
+        masterWrap.style.display = 'flex';
+        masterWrap.style.alignItems = 'center';
+        masterWrap.style.gap = '0.5rem';
+        masterWrap.createEl('span', {
+            text: 'All',
+            attr: { style: 'font-size: 0.85em; opacity: 0.75;' },
+        });
+        new Setting(masterWrap)
+            .setClass('image-gin-master-toggle')
+            .addToggle(toggle => {
+                this.masterSizeToggle = toggle;
+                toggle.setValue(this.areAllSizesSelected());
+                toggle.setTooltip('Toggle all image sizes on/off');
+                toggle.onChange((value) => {
+                    if (value) {
+                        for (const s of this.plugin.settings.imageSizes) this.selectedSizes.add(s.id);
+                    } else {
+                        this.selectedSizes.clear();
+                    }
+                    for (const [id, t] of this.sizeToggles) {
+                        t.setValue(this.selectedSizes.has(id));
+                    }
+                    logger.info(`[Ideogram] master toggle -> ${value}; selected:`, Array.from(this.selectedSizes));
+                });
+            });
+        // Strip the Setting component's left padding so the toggle hugs the header right edge
+        masterWrap.querySelectorAll('.setting-item-info').forEach(el => el.remove());
 
         const content = section.createDiv('image-gin-section-content');
         const toggleGroup = content.createDiv('image-gin-toggle-group');
@@ -168,13 +247,24 @@ export class IdeogramModal extends Modal {
                 .setName(size.label)
                 .setDesc(`${size.width} × ${size.height} → Ideogram ${ratio}`)
                 .addToggle(toggle => {
+                    this.sizeToggles.set(size.id, toggle);
                     toggle.setValue(this.selectedSizes.has(size.id));
                     toggle.onChange((value) => {
                         if (value) this.selectedSizes.add(size.id);
                         else this.selectedSizes.delete(size.id);
+                        if (this.masterSizeToggle) {
+                            this.masterSizeToggle.setValue(this.areAllSizesSelected());
+                        }
+                        logger.info(`[Ideogram] toggle ${size.id} -> ${value}; selected:`, Array.from(this.selectedSizes));
                     });
                 });
         }
+    }
+
+    private areAllSizesSelected(): boolean {
+        const sizes = this.plugin.settings.imageSizes;
+        if (sizes.length === 0) return false;
+        return sizes.every(s => this.selectedSizes.has(s.id));
     }
 
     private renderOverridesSection(containerEl: HTMLElement): void {
@@ -212,8 +302,13 @@ export class IdeogramModal extends Modal {
             });
 
         const negativeWrap = content.createDiv();
-        negativeWrap.createEl('label', { text: 'Negative prompt (base + frontmatter merged; edit to append more)' });
-        const negativeArea = negativeWrap.createEl('textarea', { attr: { rows: '2' } });
+        negativeWrap.createEl('label', { text: 'Negative prompt — what to exclude from this image' });
+        const negativeArea = negativeWrap.createEl('textarea', {
+            attr: {
+                rows: '2',
+                placeholder: 'e.g. no text, no watermarks, no signatures (already merged from settings + frontmatter; edit to add more for this run)',
+            },
+        });
         negativeArea.style.width = '100%';
         negativeArea.style.fontFamily = 'monospace';
         negativeArea.value = this.negativePrompt;
@@ -285,6 +380,19 @@ export class IdeogramModal extends Modal {
         this.isGenerating = true;
         this.showProgress();
 
+        // Persist current modal state so the next open restores it.
+        // Save BEFORE generating — even if the API fails, the user's
+        // configured preferences are remembered.
+        this.plugin.settings.ideogram.lastSession = {
+            selectedSizes: Array.from(this.selectedSizes),
+            styleType: this.styleType,
+            renderingSpeed: this.renderingSpeed,
+            magicPrompt: this.magicPrompt,
+            layerizeText: this.layerizeText,
+            writeToFrontmatter: this.writeToFrontmatter,
+        };
+        await this.plugin.saveSettings();
+
         try {
             if (this.writeToFrontmatter) {
                 await this.updateFrontmatter(this.plugin.settings.imagePromptKey, this.imagePrompt);
@@ -293,6 +401,9 @@ export class IdeogramModal extends Modal {
             const service = new IdeogramService(this.plugin.settings, this.app.vault);
             const sizes: ImageSize[] = this.plugin.settings.imageSizes.filter(s => this.selectedSizes.has(s.id));
             const finalPrompt = this.assemblePrompt();
+
+            logger.info('[Ideogram] handleGenerate: selectedSizes =', Array.from(this.selectedSizes));
+            logger.info('[Ideogram] handleGenerate: sizes to generate =', sizes.map(s => s.id));
 
             for (const size of sizes) {
                 try {

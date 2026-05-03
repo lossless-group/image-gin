@@ -200,5 +200,355 @@
     "level": "info",
     "message": "Downloaded image bytes:",
     "details": 1140745
+  },
+  {
+    "timestamp": "2026-05-03T19:00:30.820Z",
+    "level": "info",
+    "message": "Found image properties:",
+    "details": [
+      {
+        "key": "banner_image",
+        "value": "/Users/mpstaton/code/lossless-monorepo/content/visuals/ContentDisplays/ideogram-image_2048x1024_1777834652925.png",
+        "isLocalFile": true
+      },
+      {
+        "key": "portrait_image",
+        "value": "/Users/mpstaton/code/lossless-monorepo/content/visuals/ContentDisplays/ideogram-image_1024x2048_1777834660661.png",
+        "isLocalFile": true
+      },
+      {
+        "key": "square_image",
+        "value": "/Users/mpstaton/code/lossless-monorepo/content/visuals/ContentDisplays/ideogram-image_1024x1024_1777834668474.png",
+        "isLocalFile": true
+      },
+      {
+        "key": "og_image",
+        "value": "https://agent-skills.mintlify.app/mintlify-assets/_next/image?url=%2F_mintlify%2Fapi%2Fog%3Fdivision%3DDocumentation%26title%3DAgent%2BSkills%2BOverview%26description%3DA%2Bstandardized%2Bway%2Bto%2Bgive%2BAI%2Bagents%2Bnew%2Bcapabilities%2Band%2Bexpertise.%26primaryColor%3D%25237f7f7f%26lightColor%3D%2523bfbfbf%26darkColor%3D%2523404040%26backgroundLight%3D%2523ffffff%26backgroundDark%3D%25230d0d0f&w=1200&q=100",
+        "isLocalFile": false
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-05-03T19:00:30.820Z",
+    "level": "info",
+    "message": "Found markdown images:",
+    "details": []
+  },
+  {
+    "timestamp": "2026-05-03T19:00:38.617Z",
+    "level": "info",
+    "message": "Uploading to ImageKit:",
+    "details": {
+      "fileName": "Agent Skills_banner_image_1777834838616.webp",
+      "folder": "/uploads/lossless/2025-dec",
+      "tags": "Agent-Skills,Agentic-AI,Agent-Orchestration,Agentic-Teamwork",
+      "endpoint": "https://upload.imagekit.io/api/v1/files/upload",
+      "contentLength": 1202101
+    }
+  },
+  {
+    "timestamp": "2026-05-03T19:00:39.854Z",
+    "level": "info",
+    "message": "ImageKit upload successful:",
+    "details": "https://ik.imagekit.io/xvpgfijuw/uploads/lossless/2025-dec/Agent_Skills_banner_image_1777834838616_aVz80ORRh.webp"
+  },
+  {
+    "timestamp": "2026-05-03T19:00:39.860Z",
+    "level": "info",
+    "message": "Successfully converted banner_image: https://ik.imagekit.io/xvpgfijuw/uploads/lossless/2025-dec/Agent_Skills_banner_image_1777834838616_aVz80ORRh.webp"
+  },
+  {
+    "timestamp": "2026-05-03T19:00:39.861Z",
+    "level": "info",
+    "message": "Uploading to ImageKit:",
+    "details": {
+      "fileName": "Agent Skills_portrait_image_1777834839861.webp",
+      "folder": "/uploads/lossless/2025-dec",
+      "tags": "Agent-Skills,Agentic-AI,Agent-Orchestration,Agentic-Teamwork",
+      "endpoint": "https://upload.imagekit.io/api/v1/files/upload",
+      "contentLength": 1066759
+    }
+  },
+  {
+    "timestamp": "2026-05-03T19:00:40.334Z",
+    "level": "info",
+    "message": "ImageKit upload successful:",
+    "details": "https://ik.imagekit.io/xvpgfijuw/uploads/lossless/2025-dec/Agent_Skills_portrait_image_1777834839861_Cul89IbPD.webp"
+  },
+  {
+    "timestamp": "2026-05-03T19:00:40.340Z",
+    "level": "info",
+    "message": "Successfully converted portrait_image: https://ik.imagekit.io/xvpgfijuw/uploads/lossless/2025-dec/Agent_Skills_portrait_image_1777834839861_Cul89IbPD.webp"
+  },
+  {
+    "timestamp": "2026-05-03T19:00:40.341Z",
+    "level": "info",
+    "message": "Uploading to ImageKit:",
+    "details": {
+      "fileName": "Agent Skills_square_image_1777834840341.webp",
+      "folder": "/uploads/lossless/2025-dec",
+      "tags": "Agent-Skills,Agentic-AI,Agent-Orchestration,Agentic-Teamwork",
+      "endpoint": "https://upload.imagekit.io/api/v1/files/upload",
+      "contentLength": 1141371
+    }
+  },
+  {
+    "timestamp": "2026-05-03T19:00:40.740Z",
+    "level": "info",
+    "message": "ImageKit upload successful:",
+    "details": "https://ik.imagekit.io/xvpgfijuw/uploads/lossless/2025-dec/Agent_Skills_square_image_1777834840341_fTGOF4-8v.webp"
+  },
+  {
+    "timestamp": "2026-05-03T19:00:40.745Z",
+    "level": "info",
+    "message": "Successfully converted square_image: https://ik.imagekit.io/xvpgfijuw/uploads/lossless/2025-dec/Agent_Skills_square_image_1777834840341_fTGOF4-8v.webp"
+  },
+  {
+    "timestamp": "2026-05-03T19:11:22.777Z",
+    "level": "info",
+    "message": "=== Ideogram Generate Request ==="
+  },
+  {
+    "timestamp": "2026-05-03T19:11:22.777Z",
+    "level": "info",
+    "message": "Aspect ratio:",
+    "details": "2x1"
+  },
+  {
+    "timestamp": "2026-05-03T19:11:22.777Z",
+    "level": "info",
+    "message": "Rendering speed:",
+    "details": "DEFAULT"
+  },
+  {
+    "timestamp": "2026-05-03T19:11:22.777Z",
+    "level": "info",
+    "message": "Style type:",
+    "details": "GENERAL"
+  },
+  {
+    "timestamp": "2026-05-03T19:11:22.777Z",
+    "level": "info",
+    "message": "Magic prompt:",
+    "details": "AUTO"
+  },
+  {
+    "timestamp": "2026-05-03T19:11:22.777Z",
+    "level": "info",
+    "message": "Has negative prompt:",
+    "details": true
+  },
+  {
+    "timestamp": "2026-05-03T19:11:22.777Z",
+    "level": "info",
+    "message": "Prompt preview:",
+    "details": "A series of robots representing AI Agents, have work vests like construction ..."
+  },
+  {
+    "timestamp": "2026-05-03T19:11:29.657Z",
+    "level": "info",
+    "message": "Downloading Ideogram image from ephemeral URL"
+  },
+  {
+    "timestamp": "2026-05-03T19:11:30.580Z",
+    "level": "info",
+    "message": "Downloaded image bytes:",
+    "details": 994097
+  },
+  {
+    "timestamp": "2026-05-03T19:11:30.586Z",
+    "level": "info",
+    "message": "=== Ideogram Generate Request ==="
+  },
+  {
+    "timestamp": "2026-05-03T19:11:30.586Z",
+    "level": "info",
+    "message": "Aspect ratio:",
+    "details": "1x2"
+  },
+  {
+    "timestamp": "2026-05-03T19:11:30.586Z",
+    "level": "info",
+    "message": "Rendering speed:",
+    "details": "DEFAULT"
+  },
+  {
+    "timestamp": "2026-05-03T19:11:30.586Z",
+    "level": "info",
+    "message": "Style type:",
+    "details": "GENERAL"
+  },
+  {
+    "timestamp": "2026-05-03T19:11:30.586Z",
+    "level": "info",
+    "message": "Magic prompt:",
+    "details": "AUTO"
+  },
+  {
+    "timestamp": "2026-05-03T19:11:30.586Z",
+    "level": "info",
+    "message": "Has negative prompt:",
+    "details": true
+  },
+  {
+    "timestamp": "2026-05-03T19:11:30.586Z",
+    "level": "info",
+    "message": "Prompt preview:",
+    "details": "A series of robots representing AI Agents, have work vests like construction ..."
+  },
+  {
+    "timestamp": "2026-05-03T19:11:37.511Z",
+    "level": "info",
+    "message": "Downloading Ideogram image from ephemeral URL"
+  },
+  {
+    "timestamp": "2026-05-03T19:11:38.419Z",
+    "level": "info",
+    "message": "Downloaded image bytes:",
+    "details": 1254487
+  },
+  {
+    "timestamp": "2026-05-03T19:11:38.424Z",
+    "level": "info",
+    "message": "=== Ideogram Generate Request ==="
+  },
+  {
+    "timestamp": "2026-05-03T19:11:38.424Z",
+    "level": "info",
+    "message": "Aspect ratio:",
+    "details": "1x1"
+  },
+  {
+    "timestamp": "2026-05-03T19:11:38.425Z",
+    "level": "info",
+    "message": "Rendering speed:",
+    "details": "DEFAULT"
+  },
+  {
+    "timestamp": "2026-05-03T19:11:38.425Z",
+    "level": "info",
+    "message": "Style type:",
+    "details": "GENERAL"
+  },
+  {
+    "timestamp": "2026-05-03T19:11:38.425Z",
+    "level": "info",
+    "message": "Magic prompt:",
+    "details": "AUTO"
+  },
+  {
+    "timestamp": "2026-05-03T19:11:38.425Z",
+    "level": "info",
+    "message": "Has negative prompt:",
+    "details": true
+  },
+  {
+    "timestamp": "2026-05-03T19:11:38.425Z",
+    "level": "info",
+    "message": "Prompt preview:",
+    "details": "A series of robots representing AI Agents, have work vests like construction ..."
+  },
+  {
+    "timestamp": "2026-05-03T19:11:46.505Z",
+    "level": "info",
+    "message": "Downloading Ideogram image from ephemeral URL"
+  },
+  {
+    "timestamp": "2026-05-03T19:11:47.368Z",
+    "level": "info",
+    "message": "Downloaded image bytes:",
+    "details": 1409173
+  },
+  {
+    "timestamp": "2026-05-03T19:28:38.302Z",
+    "level": "info",
+    "message": "Found image properties:",
+    "details": [
+      {
+        "key": "banner_image",
+        "value": "/Users/mpstaton/code/lossless-monorepo/content/visuals/ContentDisplays/ideogram-image_2048x1024_1777835490580.png",
+        "isLocalFile": true
+      },
+      {
+        "key": "portrait_image",
+        "value": "/Users/mpstaton/code/lossless-monorepo/content/visuals/ContentDisplays/ideogram-image_1024x2048_1777835498420.png",
+        "isLocalFile": true
+      },
+      {
+        "key": "square_image",
+        "value": "/Users/mpstaton/code/lossless-monorepo/content/visuals/ContentDisplays/ideogram-image_1024x1024_1777835507368.png",
+        "isLocalFile": true
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-05-03T19:28:38.302Z",
+    "level": "info",
+    "message": "Found markdown images:",
+    "details": []
+  },
+  {
+    "timestamp": "2026-05-03T19:28:42.076Z",
+    "level": "info",
+    "message": "Uploading to ImageKit:",
+    "details": {
+      "fileName": "Agent Standards_banner_image_1777836522076.webp",
+      "folder": "/uploads/lossless/2025-dec",
+      "tags": "",
+      "endpoint": "https://upload.imagekit.io/api/v1/files/upload",
+      "contentLength": 994581
+    }
+  },
+  {
+    "timestamp": "2026-05-03T19:28:43.040Z",
+    "level": "info",
+    "message": "ImageKit upload successful:",
+    "details": "https://ik.imagekit.io/xvpgfijuw/uploads/lossless/2025-dec/Agent_Standards_banner_image_1777836522076_XqQ-EhoPHA.webp"
+  },
+  {
+    "timestamp": "2026-05-03T19:28:43.045Z",
+    "level": "info",
+    "message": "Successfully converted banner_image: https://ik.imagekit.io/xvpgfijuw/uploads/lossless/2025-dec/Agent_Standards_banner_image_1777836522076_XqQ-EhoPHA.webp"
+  },
+  {
+    "timestamp": "2026-05-03T19:28:43.046Z",
+    "level": "info",
+    "message": "Uploading to ImageKit:",
+    "details": {
+      "fileName": "Agent Standards_portrait_image_1777836523046.webp",
+      "folder": "/uploads/lossless/2025-dec",
+      "tags": "",
+      "endpoint": "https://upload.imagekit.io/api/v1/files/upload",
+      "contentLength": 1254971
+    }
+  },
+  {
+    "timestamp": "2026-05-03T19:28:43.402Z",
+    "level": "info",
+    "message": "ImageKit upload successful:",
+    "details": "https://ik.imagekit.io/xvpgfijuw/uploads/lossless/2025-dec/Agent_Standards_portrait_image_1777836523046_QWSCiSRGL.webp"
+  },
+  {
+    "timestamp": "2026-05-03T19:28:43.405Z",
+    "level": "info",
+    "message": "Successfully converted portrait_image: https://ik.imagekit.io/xvpgfijuw/uploads/lossless/2025-dec/Agent_Standards_portrait_image_1777836523046_QWSCiSRGL.webp"
+  },
+  {
+    "timestamp": "2026-05-03T19:28:43.407Z",
+    "level": "info",
+    "message": "Uploading to ImageKit:",
+    "details": {
+      "fileName": "Agent Standards_square_image_1777836523406.webp",
+      "folder": "/uploads/lossless/2025-dec",
+      "tags": "",
+      "endpoint": "https://upload.imagekit.io/api/v1/files/upload",
+      "contentLength": 1409653
+    }
+  },
+  {
+    "timestamp": "2026-05-03T19:28:43.727Z",
+    "level": "info",
+    "message": "ImageKit upload successful:",
+    "details": "https://ik.imagekit.io/xvpgfijuw/uploads/lossless/2025-dec/Agent_Standards_square_image_1777836523406_bjIBzfNds.webp"
   }
 ]

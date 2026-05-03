@@ -1,6 +1,7 @@
 import { logger } from '../utils/logger';
 import type { App, TFile } from 'obsidian';
 import { Modal, Setting, Notice } from 'obsidian';
+import type { ToggleComponent } from 'obsidian';
 import type ImageGinPlugin from '../../main';
 import { RecraftImageService } from '../services/recraftImageService';
 import type { RecraftStyleParams } from '../services/recraftImageService';
@@ -9,7 +10,7 @@ import type { ImageSize } from '../types';
 import { asString } from '../utils/coerce';
 
 export function openCurrentFileModal(
-    app: App, 
+    app: App,
     plugin: ImageGinPlugin
 ): CurrentFileModal {
     return new CurrentFileModal(app, plugin);
@@ -19,15 +20,31 @@ export class CurrentFileModal extends Modal {
     private plugin: ImageGinPlugin;
     private imagePrompt: string = '';
     private selectedSizes: Set<string> = new Set();
-    private writeToFrontmatter: boolean = true;
+    private writeToFrontmatter: boolean;
     private isGenerating: boolean = false;
     private progressEl: HTMLElement | null = null;
     private currentFile: TFile | null = null;
+
+    // Refs for the master "select all sizes" toggle and per-size toggles,
+    // so the master and individuals stay in sync when either is clicked.
+    // Mirrors the pattern in IdeogramModal.
+    private masterSizeToggle: ToggleComponent | null = null;
+    private sizeToggles: Map<string, ToggleComponent> = new Map();
 
     constructor(app: App, plugin: ImageGinPlugin) {
         super(app);
         this.plugin = plugin;
         this.currentFile = this.app.workspace.getActiveFile();
+
+        // Hydrate UI state from the persisted last session. Filter size IDs
+        // against the current settings.imageSizes so deleted-preset IDs
+        // don't haunt the modal.
+        const session = this.plugin.settings.recraftLastSession;
+        const validSizeIds = new Set(this.plugin.settings.imageSizes.map(s => s.id));
+        for (const id of session.selectedSizes) {
+            if (validSizeIds.has(id)) this.selectedSizes.add(id);
+        }
+        this.writeToFrontmatter = session.writeToFrontmatter;
     }
 
     async onOpen(): Promise<void> {
@@ -44,6 +61,8 @@ export class CurrentFileModal extends Modal {
 
     private async loadExistingPrompt(): Promise<void> {
         if (!this.currentFile) return;
+        const file = this.currentFile;
+        const key = this.plugin.settings.imagePromptKey;
 
         try {
             // Use Obsidian's metadata cache instead of reading + parsing the
@@ -51,10 +70,23 @@ export class CurrentFileModal extends Modal {
             // parser (correct on multi-line strings, URL values with colons,
             // anchors, etc.) and avoids a vault.read for a value we may not
             // even use.
-            const frontmatter = this.app.metadataCache.getFileCache(this.currentFile)?.frontmatter;
-            const existing = asString(frontmatter?.[this.plugin.settings.imagePromptKey]);
-            if (existing) {
-                this.imagePrompt = existing;
+            const fm = this.app.metadataCache.getFileCache(file)?.frontmatter;
+            const raw = fm?.[key];
+
+            if (raw === undefined) {
+                // Key absent (or file has no frontmatter at all). Write an
+                // empty value so the form is editing a real, visible
+                // frontmatter property from the start — first-time users see
+                // the convention surface in their file rather than relying on
+                // the modal's "Write prompt to frontmatter" toggle to make it
+                // appear later. processFrontMatter creates the frontmatter
+                // block if it doesn't exist.
+                await this.app.fileManager.processFrontMatter(file, (m) => {
+                    if (m[key] === undefined) m[key] = '';
+                });
+            } else {
+                const existing = asString(raw);
+                if (existing) this.imagePrompt = existing;
             }
         } catch (error) {
             logger.error('Error loading existing prompt:', error);
@@ -111,35 +143,69 @@ export class CurrentFileModal extends Modal {
     private renderSizeSection(containerEl: HTMLElement): void {
         const section = containerEl.createDiv('image-gin-section');
         const header = section.createDiv('image-gin-section-header');
+        header.style.display = 'flex';
+        header.style.justifyContent = 'space-between';
+        header.style.alignItems = 'center';
         header.createEl('span', { text: 'Image Sizes' });
+
+        const masterWrap = header.createDiv();
+        masterWrap.style.display = 'flex';
+        masterWrap.style.alignItems = 'center';
+        masterWrap.style.gap = '0.5rem';
+        masterWrap.createEl('span', {
+            text: 'All',
+            attr: { style: 'font-size: 0.85em; opacity: 0.75;' },
+        });
+        new Setting(masterWrap)
+            .setClass('image-gin-master-toggle')
+            .addToggle(toggle => {
+                this.masterSizeToggle = toggle;
+                toggle.setValue(this.areAllSizesSelected());
+                toggle.setTooltip('Toggle all image sizes on/off');
+                toggle.onChange((value) => {
+                    if (value) {
+                        for (const s of this.plugin.settings.imageSizes) this.selectedSizes.add(s.id);
+                    } else {
+                        this.selectedSizes.clear();
+                    }
+                    for (const [id, t] of this.sizeToggles) {
+                        t.setValue(this.selectedSizes.has(id));
+                    }
+                    logger.info(`[Recraft] master toggle -> ${value}; selected:`, Array.from(this.selectedSizes));
+                });
+            });
+        masterWrap.querySelectorAll('.setting-item-info').forEach(el => el.remove());
 
         const content = section.createDiv('image-gin-section-content');
         const toggleGroup = content.createDiv('image-gin-toggle-group');
 
-        // Get available sizes from settings
         const availableSizes = this.plugin.settings.imageSizes || [];
 
         availableSizes.forEach((size: ImageSize) => {
             const toggleItem = toggleGroup.createDiv('image-gin-toggle-item');
-            
+
             new Setting(toggleItem)
                 .setName(size.label)
                 .setDesc(`${size.width} × ${size.height}`)
                 .addToggle(toggle => {
+                    this.sizeToggles.set(size.id, toggle);
                     toggle.setValue(this.selectedSizes.has(size.id));
                     toggle.onChange((value) => {
-                        logger.info(`Toggle changed for ${size.id}: ${value}`);
-                        if (value) {
-                            this.selectedSizes.add(size.id);
-                            logger.info('Added to selectedSizes:', size.id);
-                        } else {
-                            this.selectedSizes.delete(size.id);
-                            logger.info('Removed from selectedSizes:', size.id);
+                        if (value) this.selectedSizes.add(size.id);
+                        else this.selectedSizes.delete(size.id);
+                        if (this.masterSizeToggle) {
+                            this.masterSizeToggle.setValue(this.areAllSizesSelected());
                         }
-                        logger.info('Current selectedSizes:', Array.from(this.selectedSizes));
+                        logger.info(`[Recraft] toggle ${size.id} -> ${value}; selected:`, Array.from(this.selectedSizes));
                     });
                 });
         });
+    }
+
+    private areAllSizesSelected(): boolean {
+        const sizes = this.plugin.settings.imageSizes;
+        if (sizes.length === 0) return false;
+        return sizes.every(s => this.selectedSizes.has(s.id));
     }
 
     private renderStyleSection(containerEl: HTMLElement): void {
@@ -241,6 +307,15 @@ export class CurrentFileModal extends Modal {
 
         this.isGenerating = true;
         this.showProgress();
+
+        // Persist current modal state so the next open restores it.
+        // Save BEFORE generating — even if the API fails, the user's
+        // configured preferences are remembered. Mirrors IdeogramModal.
+        this.plugin.settings.recraftLastSession = {
+            selectedSizes: Array.from(this.selectedSizes),
+            writeToFrontmatter: this.writeToFrontmatter,
+        };
+        await this.plugin.saveSettings();
 
         try {
             // Update frontmatter if requested

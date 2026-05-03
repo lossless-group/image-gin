@@ -1,38 +1,55 @@
 ![Image Gin Plugin for Obsidian by The Lossless Group](https://i.imgur.com/jp2ME1E.png)
 # Image Gin for Obsidian
 
-A powerful Obsidian plugin that brings AI-powered image generation directly to your Obsidian workflow. Seamlessly create and manage images using advanced AI models, starting with Recraft's API.
+A powerful Obsidian plugin that brings AI image generation, stock-image search, and CDN upload directly into your Obsidian workflow. Generate visuals from a per-file `image_prompt`, search stock photos, and rewrite local image references to a CDN — all from inside your notes.
 
 ## ✨ Features
 
-- **AI-Powered Image Generation**: Create stunning visuals directly from your notes using Recraft's AI models
-- **Stock Image Selection**: Search and insert stock images via Magnific's API (formerly Freepik)
-- **Seamless Integration**: Works natively within Obsidian's interface
-- **Flexible Image Types**: Generate both banner and portrait images with custom dimensions
-- **Smart Frontmatter Management**: Automatically updates your note's frontmatter with generated image URLs
-- **Customizable Prompts**: Fine-tune image generation with custom styles and parameters
+- **AI Image Generation — two providers**:
+  - **Recraft** for custom-trained brand styles via server-side `style_id`.
+  - **Ideogram v3** for per-call style controls (`style_type`, `rendering_speed`, `magic_prompt`) plus optional Layerize-Text post-processing that strips incidental text from generated images.
+- **Brand Template prompt wrapping (Ideogram)**: configure a brand-wide prefix, suffix, and base negative prompt in settings; every per-file prompt gets wrapped automatically. Use the `{prompt}` token for slot insertion when the per-file content needs to land mid-sentence.
+- **Stock Image Search**: Search and insert stock images via Magnific's API (formerly Freepik).
+- **CDN Upload (ImageKit)**: Convert local image references in a single note or across an entire vault folder to ImageKit URLs. Optional WebP conversion and local-file cleanup.
+- **Smart Frontmatter Management**: Reads `image_prompt` (and Ideogram-only overrides `image_negative_prompt`, `image_style_type`, `image_seed`) from each note's frontmatter; auto-creates the `image_prompt` key on modal open so the convention is visible to first-time users; writes generated image paths back under per-size keys (`banner_image`, `portrait_image`, `square_image`).
+- **Modal UX polish**: master "All" toggle on the size selector, two-way sync with individual size toggles, and last-session persistence so your selected sizes and per-call overrides restore on the next open.
+- **Image Cache**: Local cache for external images to bypass Obsidian's CSP restrictions and enable offline viewing. Configurable cap, auto-cleanup, and a Clear Cache button.
 
 ### Modals
 
-1. Generate images from an image prompt in your YAML frontmatter.
+1. **Generate Images for Current File (Recraft)** — generate from an `image_prompt` in the file's frontmatter, with style / substyle settings and per-size selection.
 ![Image Gin Demo Gif: Image Generation from Image Prompt Demo](https://i.imgur.com/12WhBJg.gif)
 
-2. Convert local images in a file to a remote image service url (only supports ImageKit).
+2. **Generate Images (Ideogram)** — generate via Ideogram v3 with brand-template prompt wrapping, per-call style/speed/magic-prompt overrides, a live Resolved Prompt Preview, and optional Layerize-Text post-processing.
+
+3. **Convert Local Images to Remote Images** — upload local image references in the active note to ImageKit and rewrite the links.
 ![Image Gin Demo GIF: Convert Locally Stored Images to a Remote Image Delivery Service URL with ImageKit](https://i.imgur.com/HfytkK3.gif)
 
-3. Batch convert local images found in any file in a directory to a remote image service url (only supports ImageKit).
+4. **Batch Convert Directory Images to Remote** — same as above but scans every file in the active note's directory.
 ![Image Gin Demo GIF: Batch Convert Locally Stored Images to a Remote Image Delivery Service URL with ImageKit](https://imgur.com/sxKzo97)
 
-4. Magnific Image Search: Search for images using Magnific's API and insert them into your notes.
+5. **Search Magnific Images** — search Magnific's stock-image API and insert results into your notes.
 ![Image Gin Image Selector: Magnific Image Search](https://i.imgur.com/IvhIL2F.png)
 
 ### Settings
 
 ![Image Gin Demo GIF: Settings Page for Image Gin](https://i.imgur.com/snCuXt6.gif)
 
-# Releases:
-0.0.9: September 14, 2025 
-- Batch convert local images found in any file in a directory to a remote image service url (only supports ImageKit).
+# Releases
+
+**0.1.1** — 2026-05-03
+- Added Ideogram v3 as a second AI generation provider.
+- Brand Template prompt wrapping (prefix / suffix / base negative prompt) with bookend and `{prompt}`-slot-insertion modes.
+- Master "All" toggle on the Image Sizes selector with two-way sync to individual toggles (both modals).
+- Last-session UI state persistence across modal opens.
+- Auto-creation of `image_prompt` frontmatter key on modal open.
+- Live Resolved Prompt Preview in the Ideogram modal showing the fully assembled prompt before generate.
+
+**0.1.0** — 2026-05-03
+- Marketplace-readiness pass: ESLint flat config wired into the build, eliminated all `any` usage, replaced `innerHTML` with Obsidian DOM API, routed all `console.*` calls through a persistent `FileLogger`, replaced the hand-rolled YAML parser with Obsidian's `metadataCache` + `processFrontMatter` APIs.
+
+**0.0.9** — 2025-09-14
+- Batch convert local images found in any file in a directory to a remote image service URL (ImageKit).
 
 # 🚀 Getting Started
 
@@ -66,21 +83,36 @@ A powerful Obsidian plugin that brings AI-powered image generation directly to y
 
 ## 🛠️ Configuration
 
-1. Get your Recraft API key from [Recraft's website](https://recraft.ai)
-2. Get your Magnific API key from [Magnific's developer dashboard](https://www.magnific.com/developers/dashboard/api-key)
-3. Get your ImageKit API key from [ImageKit's website](https://imagekit.io)
-4. Open Obsidian and navigate to Settings > Community Plugins
-5. Find "Image Gin" in the list and enable it
-6. Click on the gear icon to configure your API keys and default settings
+Each integration is independently toggleable. Enable only the ones you need.
+
+1. (Optional) Recraft — get an API key at [recraft.ai](https://recraft.ai) for AI image generation with custom-trained brand styles.
+2. (Optional) Ideogram — get an API key at [ideogram.ai](https://ideogram.ai) for AI image generation with per-call style controls and Layerize-Text post-processing.
+3. (Optional) Magnific — get an API key from the [Magnific developer dashboard](https://www.magnific.com/developers/dashboard/api-key) for stock-image search.
+4. (Optional) ImageKit — get a public/private key pair from the [ImageKit dashboard](https://imagekit.io) for CDN upload and WebP conversion.
+5. Open Obsidian, go to Settings → Community Plugins, find "Image Gin" in the list, and enable it.
+6. Click the gear icon to configure your API keys, output folder, image-size presets, and (for Ideogram) your Brand Template prefix/suffix/base-negative-prompt.
 
 ## 🖼️ Usage
 
 Open the command palette (`Cmd/Ctrl+P`) and search for any of:
 
-- **Image Gin: Generate Images for Current File** — generates AI images via Recraft from an `image_prompt` field in the active note's frontmatter.
+- **Image Gin: Generate Images for Current File** — generates AI images via **Recraft** from an `image_prompt` field in the active note's frontmatter, using the style configured in settings.
+- **Image Gin: Generate Images (Ideogram)** — generates AI images via **Ideogram v3**, wrapping the per-file prompt with your configured Brand Template. Per-call dropdowns for style type, rendering speed, and magic-prompt mode; optional Layerize-Text post-processing to strip incidental text.
 - **Image Gin: Search Magnific Images** — opens a stock-image search modal; clicking a result inserts the image as markdown at the cursor.
 - **Image Gin: Convert Local Images to Remote Images** — uploads local image references in the active note to ImageKit and rewrites the links.
 - **Image Gin: Batch Convert Directory Images to Remote** — same as above but scans every file in the active note's directory.
+
+### Frontmatter contract
+
+Image Gin reads from and writes to a small set of keys in your note's frontmatter:
+
+| Key | Read by | Written by | Effect |
+|---|---|---|---|
+| `image_prompt` | Recraft + Ideogram | Recraft + Ideogram (when "Write to frontmatter" is on) | Subject-matter prompt; auto-created as `""` on modal open if missing |
+| `image_negative_prompt` | Ideogram only | never | Appended to the brand-wide base negative prompt |
+| `image_style_type` | Ideogram only | never | Overrides the default `style_type` for this file |
+| `image_seed` | Ideogram only | never | Pins the seed for reproducibility |
+| `<sizeId>_image` (e.g. `banner_image`) | — | both | Path to the generated image for each selected size |
 
 ## 📝 License
 
