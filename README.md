@@ -23,7 +23,8 @@ A powerful Obsidian plugin that brings AI-powered image generation directly to y
 3. Batch convert local images found in any file in a directory to a remote image service url (only supports ImageKit).
 ![Image Gin Demo GIF: Batch Convert Locally Stored Images to a Remote Image Delivery Service URL with ImageKit](https://imgur.com/sxKzo97)
 
-4. Freepik Image Search: Search for images using Freepik's API and insert them into your notes.
+4. Magnific Image Search: Search for images using Magnific's API and insert them into your notes.
+![Image Gin Image Selector: Magnific Image Search](https://i.imgur.com/IvhIL2F.png)
 
 ### Settings
 

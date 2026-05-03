@@ -20,10 +20,13 @@ export class MagnificModal extends Modal {
         this.magnificService.setApiKey(this.plugin.settings.magnific.apiKey);
         this.imageCacheService = new ImageCacheService(app, plugin.settings);
         this.onSelect = async (image: MagnificImage) => {
-            // Default implementation - insert image into current file
+            // Default implementation - insert image into current file.
+            // image.url is the catalog *page* URL (.htm); image.image.source.url
+            // is the actual image file.
             const activeFile = this.app.workspace.getActiveFile();
             if (activeFile) {
-                const imageMarkdown = `![${image.title}](${image.url})`;
+                const imageUrl = image.image?.source?.url || image.url;
+                const imageMarkdown = `![${image.title}](${imageUrl})`;
                 const editor = this.app.workspace.getActiveViewOfType(MarkdownView)?.editor;
                 if (editor) {
                     editor.replaceSelection(imageMarkdown);
@@ -34,7 +37,8 @@ export class MagnificModal extends Modal {
     }
 
     onOpen() {
-        const { contentEl } = this;
+        const { contentEl, modalEl } = this;
+        modalEl.addClass('magnific-modal');
         contentEl.empty();
 
         // Create search input
@@ -175,17 +179,14 @@ export class MagnificModal extends Modal {
                     },
                     cls: 'magnific-thumbnail'
                 });
-                img.style.maxWidth = '100px';
-                img.style.maxHeight = '100px';
 
                 // Add error handling for images that fail to load
                 img.addEventListener('error', () => {
                     img.src = image.image?.source?.url || ''; // Fallback to original URL
                 });
 
-                const title = image.title || 'Untitled';
                 imgContainer.createEl('p', {
-                    text: title.length > 30 ? title.substring(0, 30) + '...' : title,
+                    text: image.title || 'Untitled',
                     cls: 'magnific-title'
                 });
 
@@ -219,13 +220,16 @@ export class MagnificModal extends Modal {
      */
     private async cacheFullSizeImage(image: MagnificImage): Promise<void> {
         try {
-            const fullSizeUrl = image.url;
+            // Use the actual image URL from image.source, NOT image.url which
+            // is the Magnific catalog page URL.
+            const fullSizeUrl = image.image?.source?.url;
             if (fullSizeUrl) {
                 const cachedImage = await this.imageCacheService.cacheImage(fullSizeUrl);
 
-                if (cachedImage.cached) {
-                    // Update the image object to use the cached path
-                    image.url = cachedImage.localPath;
+                if (cachedImage.cached && image.image?.source) {
+                    // Update the image source to use the cached path so onSelect
+                    // emits a vault-relative URL.
+                    image.image.source.url = cachedImage.localPath;
                     new Notice('Image cached successfully for offline use');
                 }
             }

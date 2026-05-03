@@ -2,15 +2,20 @@
 
 @import './magnific.css';
 
-/* ===== Base Modal Styles ===== */
-.modal {
-    padding: 1.5rem;
-    max-width: 900px;
-    margin: 0 auto;
+/* ===== Base Modal Styles =====
+   Scoped to our modal classes only — DO NOT bare-target `.modal`.
+   `.modal` is Obsidian's class on every modal in the app (command palette,
+   quick-switcher, settings, every other plugin's modals); rules placed
+   there leak everywhere. */
+.image-gin-modal,
+.batch-directory-modal,
+.magnific-modal {
     min-height: 60vh;
 }
 
-.modal h2 {
+.image-gin-modal h2,
+.batch-directory-modal h2,
+.magnific-modal h2 {
     margin-top: 0;
     padding-bottom: 0.75rem;
     border-bottom: 1px solid var(--background-modifier-border);
@@ -20,17 +25,25 @@
 }
 
 /* ===== Image Gin Specific Styles ===== */
+/* NOTE: applied to modalEl (the OUTER container), so width/max-width
+   actually take effect. See context-v/issues/Widen-Modals-in-Obsidian-using-CSS.md
+   in the perplexed repo for the rationale. */
 .image-gin-modal {
     --modal-padding: 1.5rem;
     --border-color: var(--background-modifier-border);
     --hover-bg: var(--background-modifier-hover);
     --active-bg: var(--background-modifier-active);
-    
-    padding: var(--modal-padding);
-    width: 100%;
-    max-width: 800px;
+
+    width: 90vw;
+    max-width: 880px;
     box-sizing: border-box;
-    margin: 0 auto;
+}
+
+/* Zero Obsidian's default modal-content padding so our outer width
+   isn't gobbled by inner whitespace; section/header/content rules below
+   own their own padding. */
+.image-gin-modal .modal-content {
+    padding: var(--modal-padding);
 }
 
 .image-gin-header {
@@ -187,10 +200,15 @@
 }
 
 /* ===== Batch Directory Modal ===== */
+/* Wider than the form-style modals because it's a data-list view. */
 .batch-directory-modal {
+    width: 90vw;
+    max-width: 1000px;
+    box-sizing: border-box;
+}
+
+.batch-directory-modal .modal-content {
     padding: 1.5rem;
-    max-width: 900px;
-    margin: 0 auto;
 }
 
 .batch-directory-modal .modal-section {

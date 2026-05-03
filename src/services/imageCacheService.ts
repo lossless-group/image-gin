@@ -1,4 +1,4 @@
-import { App, TFile, normalizePath } from 'obsidian';
+import { App, TFile, normalizePath, requestUrl } from 'obsidian';
 import { ImageGinSettings } from '../settings/settings';
 import { Notice } from 'obsidian';
 
@@ -85,13 +85,14 @@ export class ImageCacheService {
         const localPath = normalizePath(`${this.cacheFolder}/${fileName}`);
 
         try {
-            // Download the image
-            const response = await fetch(imageUrl);
-            if (!response.ok) {
-                throw new Error(`Failed to download image: ${response.status} ${response.statusText}`);
+            // Use Obsidian's requestUrl to bypass renderer CORS — `fetch` from
+            // app://obsidian.md is blocked by most image hosts.
+            const response = await requestUrl({ url: imageUrl, method: 'GET', throw: false });
+            if (response.status < 200 || response.status >= 300) {
+                throw new Error(`Failed to download image: HTTP ${response.status}`);
             }
 
-            const arrayBuffer = await response.arrayBuffer();
+            const arrayBuffer = response.arrayBuffer;
 
             // Save to vault
             await this.app.vault.createBinary(localPath, arrayBuffer);

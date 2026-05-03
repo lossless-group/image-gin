@@ -43,9 +43,9 @@ export class BatchDirectoryConvertLocalToRemote extends Modal {
     }
 
     async onOpen(): Promise<void> {
-        const { contentEl } = this;
+        const { contentEl, modalEl } = this;
         contentEl.empty();
-        contentEl.addClass('batch-directory-modal');
+        modalEl.addClass('batch-directory-modal');
 
         // Check if ImageKit is enabled
         if (!this.plugin.settings.imageKit.enabled) {

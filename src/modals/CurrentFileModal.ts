@@ -28,9 +28,9 @@ export class CurrentFileModal extends Modal {
     }
 
     async onOpen(): Promise<void> {
-        const { contentEl } = this;
+        const { contentEl, modalEl } = this;
         contentEl.empty();
-        contentEl.addClass('image-gin-modal');
+        modalEl.addClass('image-gin-modal');
 
         // Extract existing image_prompt from frontmatter
         await this.loadExistingPrompt();

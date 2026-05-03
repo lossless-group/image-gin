@@ -40,9 +40,9 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
     }
 
     async onOpen(): Promise<void> {
-        const { contentEl } = this;
+        const { contentEl, modalEl } = this;
         contentEl.empty();
-        contentEl.addClass('image-gin-modal');
+        modalEl.addClass('image-gin-modal');
 
         if (!this.currentFile) {
             contentEl.createEl('p', { text: 'No active file found.' });
