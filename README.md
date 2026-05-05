@@ -144,10 +144,10 @@ pnpm dev
 
 ## Using Symbolic Links to Test Your Plugin
 
-If you're like us, you have a directory housing all your code projects. To use your plugin as you develop it, create a symbolic link from your dev checkout into your vault's `.obsidian/plugins/` directory. The destination folder name must match the plugin id from `manifest.json` (`image-gin-plugin`):
+If you're like us, you have a directory housing all your code projects. To use your plugin as you develop it, create a symbolic link from your dev checkout into your vault's `.obsidian/plugins/` directory. The destination folder name must match the plugin id from `manifest.json` (`image-gin`):
 
 ```bash
-ln -s /Users/mpstaton/code/lossless-monorepo/image-gin /Users/mpstaton/content-md/lossless/.obsidian/plugins/image-gin-plugin
+ln -s /Users/mpstaton/code/lossless-monorepo/image-gin /Users/mpstaton/content-md/lossless/.obsidian/plugins/image-gin
 ```
 
 Adjust both paths for your own filesystem. After linking, run `pnpm dev` in the dev checkout — esbuild will watch for changes; reload the plugin in Obsidian (toggle off/on in Community Plugins) to pick up new builds.

@@ -550,5 +550,125 @@
     "level": "info",
     "message": "ImageKit upload successful:",
     "details": "https://ik.imagekit.io/xvpgfijuw/uploads/lossless/2025-dec/Agent_Standards_square_image_1777836523406_bjIBzfNds.webp"
+  },
+  {
+    "timestamp": "2026-05-04T02:28:04.749Z",
+    "level": "info",
+    "message": "Found image properties:",
+    "details": []
+  },
+  {
+    "timestamp": "2026-05-04T02:28:04.749Z",
+    "level": "info",
+    "message": "Found markdown images:",
+    "details": [
+      {
+        "path": "Visuals/2026-05-02_Perplexed-ask-Perplexity_3.05.02 PM.png",
+        "match": "![[Visuals/2026-05-02_Perplexed-ask-Perplexity_3.05.02 PM.png]]"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-05-04T02:28:08.406Z",
+    "level": "info",
+    "message": "Uploading to ImageKit:",
+    "details": {
+      "fileName": "Perplexed-(Obsidian-Community-Plugin)_content_1777861688405.webp",
+      "folder": "/uploads/lossless/2025-dec",
+      "tags": "Perplexed-(Obsidian-Community-Plugin),markdown",
+      "endpoint": "https://upload.imagekit.io/api/v1/files/upload",
+      "contentLength": 211171
+    }
+  },
+  {
+    "timestamp": "2026-05-04T02:28:09.012Z",
+    "level": "info",
+    "message": "ImageKit upload successful:",
+    "details": "https://ik.imagekit.io/xvpgfijuw/uploads/lossless/2025-dec/Perplexed-_Obsidian-Community-Plugin__content_1777861688405_RwUeclHm2.webp"
+  },
+  {
+    "timestamp": "2026-05-04T02:28:09.012Z",
+    "level": "info",
+    "message": "Successfully converted markdown image: https://ik.imagekit.io/xvpgfijuw/uploads/lossless/2025-dec/Perplexed-_Obsidian-Community-Plugin__content_1777861688405_RwUeclHm2.webp"
+  },
+  {
+    "timestamp": "2026-05-04T02:30:32.775Z",
+    "level": "info",
+    "message": "Found image properties:",
+    "details": []
+  },
+  {
+    "timestamp": "2026-05-04T02:30:32.775Z",
+    "level": "info",
+    "message": "Found markdown images:",
+    "details": [
+      {
+        "path": "Visuals/2026-05-02_Perplexed_Commands-Available_2.48.19 PM.png",
+        "match": "![[Visuals/2026-05-02_Perplexed_Commands-Available_2.48.19 PM.png]]"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-05-04T02:30:34.859Z",
+    "level": "info",
+    "message": "Uploading to ImageKit:",
+    "details": {
+      "fileName": "Perplexed-(Obsidian-Community-Plugin)_content_1777861834858.webp",
+      "folder": "/uploads/lossless/2025-dec",
+      "tags": "Perplexed-(Obsidian-Community-Plugin),markdown",
+      "endpoint": "https://upload.imagekit.io/api/v1/files/upload",
+      "contentLength": 219120
+    }
+  },
+  {
+    "timestamp": "2026-05-04T02:30:35.532Z",
+    "level": "info",
+    "message": "ImageKit upload successful:",
+    "details": "https://ik.imagekit.io/xvpgfijuw/uploads/lossless/2025-dec/Perplexed-_Obsidian-Community-Plugin__content_1777861834858_cVAwSGCMV.webp"
+  },
+  {
+    "timestamp": "2026-05-04T02:30:35.533Z",
+    "level": "info",
+    "message": "Successfully converted markdown image: https://ik.imagekit.io/xvpgfijuw/uploads/lossless/2025-dec/Perplexed-_Obsidian-Community-Plugin__content_1777861834858_cVAwSGCMV.webp"
+  },
+  {
+    "timestamp": "2026-05-04T03:42:14.239Z",
+    "level": "info",
+    "message": "Found image properties:",
+    "details": []
+  },
+  {
+    "timestamp": "2026-05-04T03:42:14.240Z",
+    "level": "info",
+    "message": "Found markdown images:",
+    "details": [
+      {
+        "path": "Visuals/2026-05-03-MemoPop-GUI_Screenshot_4.48.20 PM.png",
+        "match": "![[Visuals/2026-05-03-MemoPop-GUI_Screenshot_4.48.20 PM.png]]"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-05-04T03:42:16.156Z",
+    "level": "info",
+    "message": "Uploading to ImageKit:",
+    "details": {
+      "fileName": "MemoPop AI_content_1777866136156.webp",
+      "folder": "/uploads/lossless/2025-dec",
+      "tags": "MemoPop AI,markdown",
+      "endpoint": "https://upload.imagekit.io/api/v1/files/upload",
+      "contentLength": 1670366
+    }
+  },
+  {
+    "timestamp": "2026-05-04T03:42:16.975Z",
+    "level": "info",
+    "message": "ImageKit upload successful:",
+    "details": "https://ik.imagekit.io/xvpgfijuw/uploads/lossless/2025-dec/MemoPop_AI_content_1777866136156_bOoHTyHzX.webp"
+  },
+  {
+    "timestamp": "2026-05-04T03:42:16.975Z",
+    "level": "info",
+    "message": "Successfully converted markdown image: https://ik.imagekit.io/xvpgfijuw/uploads/lossless/2025-dec/MemoPop_AI_content_1777866136156_bOoHTyHzX.webp"
   }
 ]

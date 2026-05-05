@@ -12,9 +12,10 @@ interface LogEntry {
 /**
  * Singleton file logger for Image Gin.
  *
- * Writes to `.obsidian/plugins/image-gin-plugin/log.json` (the plugin's own
- * data folder, kept hidden in the vault). Also mirrors every entry to
- * console.* so the existing devtools workflow keeps working.
+ * Writes to `.obsidian/plugins/image-gin/log.json` (the plugin's own
+ * data folder, matching manifest.json id, kept hidden in the vault).
+ * Also mirrors every entry to console.* so the existing devtools
+ * workflow keeps working.
  *
  * `initialize(vault)` MUST be called once during plugin onload before any
  * log calls actually persist; pre-initialize calls fall through to console
@@ -25,7 +26,7 @@ export class FileLogger {
     // Plugin-folder path (matches the directory Obsidian uses for this plugin
     // per manifest.json id). Kept as a constant so we never accidentally
     // write a log.json to the user's vault root.
-    private logFile: string = '.obsidian/plugins/image-gin-plugin/log.json';
+    private logFile: string = '.obsidian/plugins/image-gin/log.json';
     private vault: Vault | null = null;
     private logEntries: LogEntry[] = [];
     private isSaving = false;

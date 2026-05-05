@@ -3,16 +3,15 @@
 
 plugin:
   # Plugin identifiers
-  id: "image-gin-plugin"
+  id: "image-gin"
   name: "Image Gin"
   class_name: "ImageGin"
-  
+
   # Plugin metadata
-  version: "0.0.1"
-  description: "Enables users to use Generative AI to generate contextually relevant images through an [Obsidian](https://obsidian.md) plugin."
+  version: "0.1.1"
+  description: "Generate AI images, search stock images, and upload to ImageKit CDN."
   author: "The Lossless Group"
   author_url: "https://lossless.group"
-  funding_url: "https://lossless.group"
   
   # Plugin settings
   min_app_version: "1.8.10"

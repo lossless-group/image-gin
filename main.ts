@@ -59,7 +59,7 @@ export default class ImageGinPlugin extends Plugin {
         await this.loadSettings();
 
         // Wire up the file logger so console.* calls in services/modals
-        // also persist to .obsidian/plugins/image-gin-plugin/log.json.
+        // also persist to .obsidian/plugins/image-gin/log.json.
         logger.initialize(this.app.vault);
 
         this.addSettingTab(new ImageGinSettingTab(this.app, this));
