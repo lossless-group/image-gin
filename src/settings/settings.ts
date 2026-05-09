@@ -148,6 +148,26 @@ export interface ImageCacheSettings {
     cleanupDays: number;
 }
 
+export interface ImgurSettings {
+    enabled: boolean;
+    clientId: string;
+}
+
+export type DropGatePolicyMode = 'always-confirm' | 'external-only';
+
+export interface DropGateSettings {
+    enabled: boolean;
+    policyMode: DropGatePolicyMode;
+    defaultDestination: 'vault' | 'imagekit' | 'imgur';
+    rememberSessionChoice: boolean;
+    /**
+     * Override folder for drop-gate uploads to ImageKit. When empty, falls
+     * back to the main imageKit.uploadFolder. Lets the user route ad-hoc
+     * dropped images somewhere different from generated images.
+     */
+    imageKitFolder: string;
+}
+
 export interface ImageGinSettings {
     recraftApiKey: string;
     recraftBaseUrl: string;
@@ -162,9 +182,11 @@ export interface ImageGinSettings {
     imageStylesJSON: string;
     imageOutputFolder: string;
     imageKit: ImageKitSettings;
+    imgur: ImgurSettings;
     magnific: MagnificSettings;
     ideogram: IdeogramSettings;
     imageCache: ImageCacheSettings;
+    dropGate: DropGateSettings;
     recraftLastSession: RecraftSessionState;
 }
 
@@ -247,6 +269,17 @@ export const DEFAULT_SETTINGS: ImageGinSettings = {
         maxCacheSize: 100, // 100 MB
         autoCleanup: true,
         cleanupDays: 30,
+    },
+    imgur: {
+        enabled: false,
+        clientId: '',
+    },
+    dropGate: {
+        enabled: false,
+        policyMode: 'always-confirm',
+        defaultDestination: 'vault',
+        rememberSessionChoice: true,
+        imageKitFolder: '',
     },
     recraftLastSession: {
         selectedSizes: [],
@@ -879,6 +912,104 @@ export class ImageGinSettingTab extends PluginSettingTab {
             
             // Load and display cache stats
             void this.loadCacheStats(statsDiv);
+        }
+
+        // ─── Drop Gate ──────────────────────────────────────────────
+        containerEl.createEl('h3', { text: 'Drag-Drop / Paste Confirmation Gate' });
+        containerEl.createEl('p', {
+            text: 'When enabled, every image dropped or pasted into a note opens a confirmation modal asking where it should go: vault attachments, ImageKit, or Imgur. Built for writers who handle private client imagery and want every image destination to be a deliberate decision.',
+            cls: 'image-gin-settings-blurb',
+        });
+
+        new Setting(containerEl)
+            .setName('Enable drop gate')
+            .setDesc('Intercept image drops and pastes; show the confirmation modal.')
+            .addToggle((t) =>
+                t.setValue(this.plugin.settings.dropGate.enabled).onChange(async (v) => {
+                    this.plugin.settings.dropGate.enabled = v;
+                    await this.plugin.saveSettings();
+                    this.display();
+                })
+            );
+
+        if (this.plugin.settings.dropGate.enabled) {
+            new Setting(containerEl)
+                .setName('Policy mode')
+                .setDesc('When should the gate intercept?')
+                .addDropdown((dd) => {
+                    dd.addOption('always-confirm', 'Always confirm');
+                    dd.addOption('external-only', 'Confirm only if an external destination is enabled');
+                    dd.setValue(this.plugin.settings.dropGate.policyMode);
+                    dd.onChange(async (v) => {
+                        this.plugin.settings.dropGate.policyMode = v as DropGatePolicyMode;
+                        await this.plugin.saveSettings();
+                    });
+                });
+
+            new Setting(containerEl)
+                .setName('Default destination')
+                .setDesc('Pre-selected when the modal opens.')
+                .addDropdown((dd) => {
+                    dd.addOption('vault', 'Vault attachments');
+                    dd.addOption('imagekit', 'ImageKit (private CDN)');
+                    dd.addOption('imgur', 'Imgur (public CDN)');
+                    dd.setValue(this.plugin.settings.dropGate.defaultDestination);
+                    dd.onChange(async (v) => {
+                        this.plugin.settings.dropGate.defaultDestination =
+                            v as DropGateSettings['defaultDestination'];
+                        await this.plugin.saveSettings();
+                    });
+                });
+
+            new Setting(containerEl)
+                .setName('Show "remember for session" checkbox')
+                .setDesc('Lets the user skip the modal for the current note. Never persists across Obsidian restarts.')
+                .addToggle((t) =>
+                    t.setValue(this.plugin.settings.dropGate.rememberSessionChoice).onChange(async (v) => {
+                        this.plugin.settings.dropGate.rememberSessionChoice = v;
+                        await this.plugin.saveSettings();
+                    })
+                );
+
+            new Setting(containerEl)
+                .setName('ImageKit folder for drop-gate uploads')
+                .setDesc(
+                    `Folder path on ImageKit where dropped/pasted images go. Leave blank to use the main ImageKit upload folder ("${this.plugin.settings.imageKit.uploadFolder || '(unset)'}").`
+                )
+                .addText((t) => {
+                    t.setPlaceholder('/uploads/lossless/drops');
+                    t.setValue(this.plugin.settings.dropGate.imageKitFolder).onChange(async (v) => {
+                        this.plugin.settings.dropGate.imageKitFolder = v;
+                        await this.plugin.saveSettings();
+                    });
+                });
+        }
+
+        // ─── Imgur (public CDN) ─────────────────────────────────────
+        containerEl.createEl('h3', { text: 'Imgur (public CDN)' });
+
+        new Setting(containerEl)
+            .setName('Enable Imgur destination')
+            .setDesc('Anonymous upload via a client ID. Public — use for non-sensitive imagery only.')
+            .addToggle((t) =>
+                t.setValue(this.plugin.settings.imgur.enabled).onChange(async (v) => {
+                    this.plugin.settings.imgur.enabled = v;
+                    await this.plugin.saveSettings();
+                    this.display();
+                })
+            );
+
+        if (this.plugin.settings.imgur.enabled) {
+            new Setting(containerEl)
+                .setName('Imgur client ID')
+                .setDesc('Anonymous client ID from imgur.com/account → Applications. Not the secret.')
+                .addText((t) => {
+                    t.inputEl.type = 'password';
+                    t.setValue(this.plugin.settings.imgur.clientId).onChange(async (v) => {
+                        this.plugin.settings.imgur.clientId = v;
+                        await this.plugin.saveSettings();
+                    });
+                });
         }
     }
 

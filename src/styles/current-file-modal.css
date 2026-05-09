@@ -1,6 +1,7 @@
 /* image-gin/src/styles/current-file-modal.css */
 
 @import './magnific.css';
+@import './drop-gate.css';
 
 /* ===== Base Modal Styles =====
    Scoped to our modal classes only — DO NOT bare-target `.modal`.

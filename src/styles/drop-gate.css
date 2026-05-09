@@ -1,0 +1,175 @@
+/* image-gin/src/styles/drop-gate.css
+ *
+ * Drop-gate confirmation modal. Class attaches to modalEl (the OUTER popup),
+ * not contentEl, so width rules actually take effect. See
+ * perplexed/context-v/issues/Widen-Modals-in-Obsidian-using-CSS.md.
+ */
+
+.image-gin-drop-gate-modal {
+    width: 90vw;
+    max-width: 720px;
+    max-height: 88vh;
+}
+
+.image-gin-drop-gate-modal .modal-content {
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(88vh - 60px);
+}
+
+.image-gin-drop-gate-modal .idg-destinations {
+    flex: 1 1 auto;
+    overflow-y: auto;
+}
+
+.image-gin-drop-gate-modal .idg-header {
+    padding: 1.25rem 1.5rem 0.75rem;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.image-gin-drop-gate-modal .idg-title {
+    margin: 0 0 0.35rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.image-gin-drop-gate-modal .idg-subtitle {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
+.image-gin-drop-gate-modal .idg-file-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.85rem 1.5rem;
+    background: var(--background-secondary);
+    border-bottom: 1px solid var(--background-modifier-border);
+    max-height: 8rem;
+    overflow-y: auto;
+    flex-shrink: 0;
+}
+
+.image-gin-drop-gate-modal .idg-file-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    font-size: 0.85rem;
+}
+
+.image-gin-drop-gate-modal .idg-file-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-normal);
+    font-family: var(--font-monospace);
+}
+
+.image-gin-drop-gate-modal .idg-file-meta {
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.image-gin-drop-gate-modal .idg-destinations {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 1rem 1.5rem;
+}
+
+.image-gin-drop-gate-modal .idg-destination {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.image-gin-drop-gate-modal .idg-destination:hover:not(.idg-destination-disabled) {
+    border-color: var(--interactive-accent);
+    background: var(--background-modifier-hover);
+}
+
+.image-gin-drop-gate-modal .idg-destination-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.image-gin-drop-gate-modal .idg-destination-disabled .idg-destination-hint {
+    color: var(--text-error, var(--text-muted));
+    font-style: italic;
+    font-size: 0.78rem;
+    margin-top: 0.2rem;
+}
+
+.image-gin-drop-gate-modal .idg-destination input[type='radio'] {
+    margin-top: 0.2rem;
+    accent-color: var(--interactive-accent);
+}
+
+.image-gin-drop-gate-modal .idg-destination-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.image-gin-drop-gate-modal .idg-destination-label {
+    font-weight: 600;
+    color: var(--text-normal);
+}
+
+.image-gin-drop-gate-modal .idg-destination-desc {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.35;
+}
+
+.image-gin-drop-gate-modal .idg-remember {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0 1.5rem 0.75rem;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.image-gin-drop-gate-modal .idg-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 0.85rem 1.5rem;
+    border-top: 1px solid var(--background-modifier-border);
+    background: var(--background-secondary);
+}
+
+.image-gin-drop-gate-modal .idg-cancel,
+.image-gin-drop-gate-modal .idg-insert {
+    padding: 0.4rem 1rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border: 1px solid var(--background-modifier-border);
+    background: var(--background-primary);
+    color: var(--text-normal);
+}
+
+.image-gin-drop-gate-modal .idg-cancel:hover {
+    background: var(--background-modifier-hover);
+}
+
+.image-gin-drop-gate-modal .idg-insert.mod-cta {
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
+    border-color: var(--interactive-accent);
+}
+
+.image-gin-drop-gate-modal .idg-insert.mod-cta:hover {
+    background: var(--interactive-accent-hover);
+}

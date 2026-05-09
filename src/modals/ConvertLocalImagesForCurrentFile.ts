@@ -1,6 +1,7 @@
 import { logger } from '../utils/logger';
 import type { App, TFile } from 'obsidian';
 import { Modal, Setting, Notice, FileSystemAdapter } from 'obsidian';
+import type { ToggleComponent } from 'obsidian';
 import type ImageGinPlugin from '../../main';
 import { ImageKitService } from '../services/imagekitService';
 import { readFileSync } from 'fs';
@@ -21,6 +22,14 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
     private progressEl: HTMLElement | null = null;
     private selectedProperties: Set<string> = new Set();
     private selectedMarkdownImages: Set<string> = new Set();
+
+    // Refs for header "All" master toggles and the per-row toggles they
+    // command, mirroring the IdeogramModal pattern so master and rows
+    // stay in sync when either is clicked.
+    private fmMasterToggle: ToggleComponent | null = null;
+    private fmRowToggles: Map<string, ToggleComponent> = new Map();
+    private mdMasterToggle: ToggleComponent | null = null;
+    private mdRowToggles: Map<string, ToggleComponent> = new Map();
 
     // Common image properties to check
     private readonly IMAGE_PROPERTIES = [
@@ -112,6 +121,19 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
                 }
             }
 
+            // Pre-select every eligible row. The common flow is "convert
+            // everything in this file" (banner + portrait + square, plus
+            // any inline markdown images), so default-on removes the
+            // three-clicks-every-time friction the user hit. Already-remote
+            // frontmatter URLs stay deselected because their toggle is
+            // disabled regardless.
+            for (const property of this.imageProperties) {
+                if (property.isLocalFile) this.selectedProperties.add(property.key);
+            }
+            for (const md of this.markdownImagePaths) {
+                this.selectedMarkdownImages.add(md.path);
+            }
+
             logger.info('Found image properties:', this.imageProperties);
             logger.info('Found markdown images:', this.markdownImagePaths);
         } catch (error) {
@@ -155,19 +177,11 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
 
         // Frontmatter image properties list
         if (this.imageProperties.length > 0) {
-            contentEl.createEl('h3', { 
-                text: 'Frontmatter Images',
-                cls: 'image-gin-section-header'
-            });
             this.renderImagePropertiesList(contentEl);
         }
 
         // Markdown content images list
         if (this.markdownImagePaths.length > 0) {
-            contentEl.createEl('h3', { 
-                text: 'Markdown Content Images',
-                cls: 'image-gin-section-header'
-            });
             this.renderMarkdownImagesList(contentEl);
         }
 
@@ -178,12 +192,80 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
         this.renderConvertButton(contentEl);
     }
 
+    /**
+     * Build a section header (label + right-aligned "All" master toggle)
+     * matching the IdeogramModal Image Sizes section. Returns the toggle
+     * component so the caller can wire it up to its row toggles.
+     */
+    private renderSectionHeaderWithMasterToggle(
+        section: HTMLElement,
+        title: string,
+        initialAllSelected: boolean,
+        onMasterChange: (value: boolean) => void
+    ): ToggleComponent | null {
+        const header = section.createDiv('image-gin-section-header');
+        header.style.display = 'flex';
+        header.style.justifyContent = 'space-between';
+        header.style.alignItems = 'center';
+        header.createEl('span', { text: title });
+
+        const masterWrap = header.createDiv();
+        masterWrap.style.display = 'flex';
+        masterWrap.style.alignItems = 'center';
+        masterWrap.style.gap = '0.5rem';
+        masterWrap.createEl('span', {
+            text: 'All',
+            attr: { style: 'font-size: 0.85em; opacity: 0.75;' },
+        });
+
+        let captured: ToggleComponent | null = null;
+        new Setting(masterWrap)
+            .setClass('image-gin-master-toggle')
+            .addToggle(toggle => {
+                captured = toggle;
+                toggle.setValue(initialAllSelected);
+                toggle.setTooltip(`Toggle all ${title.toLowerCase()} on/off`);
+                toggle.onChange(onMasterChange);
+            });
+        // Strip the Setting component's left-info column so the toggle
+        // hugs the header's right edge (matches IdeogramModal).
+        masterWrap.querySelectorAll('.setting-item-info').forEach(el => el.remove());
+
+        return captured;
+    }
+
     private renderImagePropertiesList(containerEl: HTMLElement): void {
-        const listContainer = containerEl.createDiv('image-gin-properties-list');
+        const section = containerEl.createDiv('image-gin-section');
+
+        // Eligible = local files; already-ImageKit URLs are excluded from
+        // the master toggle's universe so flipping master-on never tries
+        // to "select" an already-converted entry.
+        const eligible = this.imageProperties.filter(p => p.isLocalFile);
+
+        this.fmMasterToggle = this.renderSectionHeaderWithMasterToggle(
+            section,
+            'Frontmatter Images',
+            this.areAllFmEligibleSelected(),
+            (value) => {
+                if (value) {
+                    for (const p of eligible) this.selectedProperties.add(p.key);
+                } else {
+                    for (const p of eligible) this.selectedProperties.delete(p.key);
+                }
+                for (const p of eligible) {
+                    const t = this.fmRowToggles.get(p.key);
+                    if (t) t.setValue(this.selectedProperties.has(p.key));
+                }
+                this.updateConvertButtonState();
+            }
+        );
+
+        const content = section.createDiv('image-gin-section-content');
+        const toggleGroup = content.createDiv('image-gin-toggle-group');
 
         this.imageProperties.forEach((prop) => {
-            const itemEl = listContainer.createDiv('image-gin-property-item');
-            
+            const itemEl = toggleGroup.createDiv('image-gin-toggle-item');
+
             const isAlreadyImageKit = !prop.isLocalFile;
             const statusClass = isAlreadyImageKit ? 'already-imagekit' : 'local-file';
             itemEl.addClass(statusClass);
@@ -192,6 +274,7 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
                 .setName(prop.key)
                 .setDesc(`${prop.value} ${isAlreadyImageKit ? '(Already ImageKit URL)' : '(Local file)'}`)
                 .addToggle(toggle => {
+                    if (!isAlreadyImageKit) this.fmRowToggles.set(prop.key, toggle);
                     toggle.setValue(prop.isLocalFile && this.selectedProperties.has(prop.key));
                     toggle.setDisabled(isAlreadyImageKit);
                     toggle.onChange((value) => {
@@ -200,10 +283,24 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
                         } else {
                             this.selectedProperties.delete(prop.key);
                         }
+                        if (this.fmMasterToggle) {
+                            this.fmMasterToggle.setValue(this.areAllFmEligibleSelected());
+                        }
                         this.updateConvertButtonState();
                     });
                 });
         });
+    }
+
+    private areAllFmEligibleSelected(): boolean {
+        const eligible = this.imageProperties.filter(p => p.isLocalFile);
+        if (eligible.length === 0) return false;
+        return eligible.every(p => this.selectedProperties.has(p.key));
+    }
+
+    private areAllMdSelected(): boolean {
+        if (this.markdownImagePaths.length === 0) return false;
+        return this.markdownImagePaths.every(m => this.selectedMarkdownImages.has(m.path));
     }
 
     private renderProgressSection(containerEl: HTMLElement): void {
@@ -217,21 +314,45 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
     }
 
     private renderMarkdownImagesList(containerEl: HTMLElement): void {
-        const listContainer = containerEl.createDiv('image-gin-markdown-images-list');
+        const section = containerEl.createDiv('image-gin-section');
+
+        this.mdMasterToggle = this.renderSectionHeaderWithMasterToggle(
+            section,
+            'Markdown Content Images',
+            this.areAllMdSelected(),
+            (value) => {
+                if (value) {
+                    for (const m of this.markdownImagePaths) this.selectedMarkdownImages.add(m.path);
+                } else {
+                    this.selectedMarkdownImages.clear();
+                }
+                for (const [path, t] of this.mdRowToggles) {
+                    t.setValue(this.selectedMarkdownImages.has(path));
+                }
+                this.updateConvertButtonState();
+            }
+        );
+
+        const content = section.createDiv('image-gin-section-content');
+        const toggleGroup = content.createDiv('image-gin-toggle-group');
 
         this.markdownImagePaths.forEach((image, index) => {
-            const itemEl = listContainer.createDiv('image-gin-markdown-item');
-            
+            const itemEl = toggleGroup.createDiv('image-gin-toggle-item');
+
             new Setting(itemEl)
                 .setName(`Image ${index + 1}: ${image.path}`)
                 .setDesc(`Found in markdown content`)
                 .addToggle(toggle => {
+                    this.mdRowToggles.set(image.path, toggle);
                     toggle.setValue(this.selectedMarkdownImages.has(image.path));
                     toggle.onChange((value) => {
                         if (value) {
                             this.selectedMarkdownImages.add(image.path);
                         } else {
                             this.selectedMarkdownImages.delete(image.path);
+                        }
+                        if (this.mdMasterToggle) {
+                            this.mdMasterToggle.setValue(this.areAllMdSelected());
                         }
                         this.updateConvertButtonState();
                     });
