@@ -1,6 +1,6 @@
 {
 	"name": "image-gin",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"description": "Generate AI images, search stock images, and upload to ImageKit CDN.",
 	"main": "main.js",
 	"scripts": {
@@ -24,9 +24,9 @@
 		"@types/node": "^25.6.0",
 		"@typescript-eslint/eslint-plugin": "8.59.1",
 		"@typescript-eslint/parser": "8.59.1",
-		"builtin-modules": "5.1.0",
 		"esbuild": "0.28.0",
 		"eslint": "^10.3.0",
+		"eslint-plugin-obsidianmd": "^0.2.9",
 		"obsidian": "latest",
 		"tslib": "2.8.1",
 		"typescript": "6.0.3"

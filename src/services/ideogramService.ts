@@ -8,6 +8,8 @@ import type {
     IdeogramStyleType,
 } from '../settings/settings';
 import { isRecord } from '../utils/coerce';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 // Raw-bytes image type — avoids the base64 round-trip Recraft does, which
 // triples in-flight memory for multi-MB Ideogram outputs and was a
@@ -206,11 +208,11 @@ export class IdeogramService {
         if (!isRecord(json)) {
             throw new Error('Ideogram generate: response was not a JSON object');
         }
-        const data = json.data;
+        const data: unknown = json.data;
         if (!Array.isArray(data) || data.length === 0) {
             throw new Error(`Ideogram generate: empty data array — ${JSON.stringify(json).slice(0, 300)}`);
         }
-        const first = data[0];
+        const first: unknown = data[0];
         if (!isRecord(first) || typeof first.url !== 'string') {
             throw new Error('Ideogram generate: first result missing url');
         }
@@ -302,8 +304,6 @@ export class IdeogramService {
     async saveImage(image: IdeogramImage, filePath: string): Promise<TFile | null> {
         try {
             if (filePath.startsWith('/')) {
-                const fs = require('fs');
-                const path = require('path');
                 const folderPath = path.dirname(filePath);
                 if (!fs.existsSync(folderPath)) {
                     fs.mkdirSync(folderPath, { recursive: true });

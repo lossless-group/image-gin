@@ -3,6 +3,8 @@ import type { TFile, Vault } from 'obsidian';
 import { requestUrl } from 'obsidian';
 import type { ImageGinSettings } from '../settings/settings';
 import { isRecord } from '../utils/coerce';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 export interface GeneratedImage {
     base64: string;
@@ -200,8 +202,6 @@ export class RecraftImageService {
             // Check if this is an absolute path
             if (filePath.startsWith('/')) {
                 // Use Node.js fs operations for absolute paths
-                const fs = require('fs');
-                const path = require('path');
                 
                 logger.info('Saving to absolute path:', filePath);
                 

@@ -76,7 +76,7 @@ export class IdeogramModal extends Modal {
         const file = this.currentFile;
         const key = this.plugin.settings.imagePromptKey;
 
-        const frontmatter = this.app.metadataCache.getFileCache(file)?.frontmatter;
+        const frontmatter: Record<string, unknown> | undefined = this.app.metadataCache.getFileCache(file)?.frontmatter;
         const rawPrompt = frontmatter?.[key];
 
         if (rawPrompt === undefined) {
@@ -85,7 +85,7 @@ export class IdeogramModal extends Modal {
             // the plugin's convention surface in their file immediately
             // rather than discovering it post-generate.
             try {
-                await this.app.fileManager.processFrontMatter(file, (m) => {
+                await this.app.fileManager.processFrontMatter(file, (m: Record<string, unknown>) => {
                     if (m[key] === undefined) m[key] = '';
                 });
             } catch (error) {
@@ -122,7 +122,7 @@ export class IdeogramModal extends Modal {
         const { contentEl } = this;
 
         const headerEl = contentEl.createDiv('image-gin-header');
-        headerEl.createEl('h2', { text: 'Generate Images (Ideogram)', cls: 'image-gin-title' });
+        headerEl.createEl('h2', { text: 'Generate images (Ideogram)', cls: 'image-gin-title' });
 
         this.renderPromptSection(contentEl);
         this.renderResolvedPromptSection(contentEl);
@@ -136,7 +136,7 @@ export class IdeogramModal extends Modal {
     private renderPromptSection(containerEl: HTMLElement): void {
         const section = containerEl.createDiv('image-gin-section');
         const header = section.createDiv('image-gin-section-header');
-        header.createEl('span', { text: 'Image Prompt — Subject Matter' });
+        header.createSpan({ text: 'Image Prompt — Subject Matter' });
 
         const content = section.createDiv('image-gin-section-content');
         const helpText = content.createEl('p', {
@@ -147,7 +147,7 @@ export class IdeogramModal extends Modal {
         const textarea = content.createEl('textarea', {
             cls: 'image-gin-textarea',
             attr: {
-                placeholder: 'e.g. A series of robots representing AI Agents wearing construction work vests with "Agent" on the back, reviewing checklists at an industrial production line where code snippets and function names roll off instead of physical products',
+                placeholder: 'E.g. A series of robots representing AI agents wearing construction work vests with "agent" on the back, reviewing checklists at an industrial production line where code snippets and function names roll off instead of physical products',
                 rows: '4',
             },
         });
@@ -161,7 +161,7 @@ export class IdeogramModal extends Modal {
     private renderResolvedPromptSection(containerEl: HTMLElement): void {
         const section = containerEl.createDiv('image-gin-section');
         const header = section.createDiv('image-gin-section-header');
-        header.createEl('span', { text: 'Resolved Prompt Preview' });
+        header.createSpan({ text: 'Resolved Prompt Preview' });
 
         const content = section.createDiv('image-gin-section-content');
 
@@ -176,11 +176,7 @@ export class IdeogramModal extends Modal {
         }
 
         this.previewEl = content.createEl('pre', { cls: 'image-gin-preview' });
-        this.previewEl.style.whiteSpace = 'pre-wrap';
-        this.previewEl.style.padding = '8px';
-        this.previewEl.style.backgroundColor = 'var(--background-secondary)';
-        this.previewEl.style.borderRadius = '4px';
-        this.previewEl.style.fontSize = '0.85em';
+        this.previewEl.addClass('image-gin-preview');
 
         this.refreshPreview();
     }
@@ -203,16 +199,12 @@ export class IdeogramModal extends Modal {
     private renderSizeSection(containerEl: HTMLElement): void {
         const section = containerEl.createDiv('image-gin-section');
         const header = section.createDiv('image-gin-section-header');
-        header.style.display = 'flex';
-        header.style.justifyContent = 'space-between';
-        header.style.alignItems = 'center';
-        header.createEl('span', { text: 'Image Sizes' });
+        header.addClass('image-gin-row');
+        header.createSpan({ text: 'Image Sizes' });
 
         const masterWrap = header.createDiv();
-        masterWrap.style.display = 'flex';
-        masterWrap.style.alignItems = 'center';
-        masterWrap.style.gap = '0.5rem';
-        masterWrap.createEl('span', {
+        masterWrap.addClass('image-gin-row-tight');
+        masterWrap.createSpan({
             text: 'All',
             attr: { style: 'font-size: 0.85em; opacity: 0.75;' },
         });
@@ -270,7 +262,7 @@ export class IdeogramModal extends Modal {
     private renderOverridesSection(containerEl: HTMLElement): void {
         const section = containerEl.createDiv('image-gin-section');
         const header = section.createDiv('image-gin-section-header');
-        header.createEl('span', { text: 'Per-call Overrides' });
+        header.createSpan({ text: 'Per-call Overrides' });
 
         const content = section.createDiv('image-gin-section-content');
 
@@ -306,11 +298,10 @@ export class IdeogramModal extends Modal {
         const negativeArea = negativeWrap.createEl('textarea', {
             attr: {
                 rows: '2',
-                placeholder: 'e.g. no text, no watermarks, no signatures (already merged from settings + frontmatter; edit to add more for this run)',
+                placeholder: 'E.g. No text, no watermarks, no signatures (already merged from settings + frontmatter; edit to add more for this run)',
             },
         });
-        negativeArea.style.width = '100%';
-        negativeArea.style.fontFamily = 'monospace';
+        negativeArea.addClass('image-gin-text-area-md');
         negativeArea.value = this.negativePrompt;
         negativeArea.addEventListener('input', () => {
             this.negativePrompt = negativeArea.value;
@@ -329,7 +320,7 @@ export class IdeogramModal extends Modal {
     private renderFrontmatterSection(containerEl: HTMLElement): void {
         const section = containerEl.createDiv('image-gin-section');
         const header = section.createDiv('image-gin-section-header');
-        header.createEl('span', { text: 'Frontmatter Options' });
+        header.createSpan({ text: 'Frontmatter Options' });
 
         const content = section.createDiv('image-gin-section-content');
         new Setting(content)
@@ -345,7 +336,7 @@ export class IdeogramModal extends Modal {
 
     private renderProgressSection(containerEl: HTMLElement): void {
         this.progressEl = containerEl.createDiv('image-gin-progress');
-        this.progressEl.style.display = 'none';
+        this.progressEl.addClass('image-gin-hidden');
         this.progressEl.createEl('p', {
             text: 'Generating images...',
             cls: 'image-gin-progress-text',
@@ -355,7 +346,7 @@ export class IdeogramModal extends Modal {
     private renderGenerateButton(containerEl: HTMLElement): void {
         const wrap = containerEl.createDiv();
         const btn = wrap.createEl('button', {
-            text: 'Generate Images',
+            text: 'Generate images',
             cls: 'image-gin-button',
         });
         btn.addEventListener('click', () => { void this.handleGenerate(); });
@@ -456,7 +447,7 @@ export class IdeogramModal extends Modal {
         if (!this.currentFile) return;
         const file = this.currentFile;
         try {
-            await this.app.fileManager.processFrontMatter(file, (fm) => {
+            await this.app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
                 fm[key] = value;
             });
         } catch (error) {
@@ -465,11 +456,11 @@ export class IdeogramModal extends Modal {
     }
 
     private showProgress(): void {
-        if (this.progressEl) this.progressEl.style.display = 'block';
+        if (this.progressEl) this.progressEl.removeClass('image-gin-hidden');
     }
 
     private hideProgress(): void {
-        if (this.progressEl) this.progressEl.style.display = 'none';
+        if (this.progressEl) this.progressEl.addClass('image-gin-hidden');
     }
 
     private updateProgress(message: string): void {

@@ -31,7 +31,7 @@ export class ImgurDestination implements DropGateDestination {
         let pos = ctx.insertPos;
         for (const file of files) {
             const link = await this.upload(file, clientId);
-            console.log(`[image-gin/drop-gate] Imgur upload → ${link}`);
+            console.debug(`[image-gin/drop-gate] Imgur upload → ${link}`);
             const alt = file.name || 'image';
             const md = `![${alt}](${link})\n`;
             ctx.editor.replaceRange(md, pos);
@@ -77,7 +77,9 @@ export class ImgurDestination implements DropGateDestination {
             throw new Error(`Imgur upload failed (${response.status}): ${response.text}`);
         }
 
-        const data: ImgurResponse = (typeof response.json === 'function' ? await response.json() : response.json) as ImgurResponse;
+        const data: ImgurResponse = (typeof response.json === 'function'
+            ? (await (response.json as () => Promise<unknown>)())
+            : response.json) as ImgurResponse;
         const link = data.data?.link;
         if (!link) {
             throw new Error('Imgur response missing link.');

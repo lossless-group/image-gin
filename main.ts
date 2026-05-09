@@ -45,7 +45,10 @@ export default class ImageGinPlugin extends Plugin {
     private dropGateHandlers: DropGateHandlers | null = null;
 
     async loadSettings(): Promise<void> {
-        const loadedSettings = (await this.loadData()) ?? {};
+        const raw: unknown = (await this.loadData()) ?? {};
+        const loadedSettings: Record<string, unknown> = (typeof raw === 'object' && raw !== null)
+            ? (raw as Record<string, unknown>)
+            : {};
         // One-shot migration: Freepik rebranded to Magnific. Move legacy
         // `freepik` config into `magnific` so the user's saved key/enabled
         // flag survive the schema rename. Persists via saveSettings below.
@@ -73,7 +76,7 @@ export default class ImageGinPlugin extends Plugin {
         // Register commands directly in onload
         this.addCommand({
             id: 'generate-images-for-current-file',
-            name: 'Generate Images for Current File',
+            name: 'Generate images for current file',
             callback: () => {
                 new CurrentFileModal(this.app, this).open();
             }
@@ -81,7 +84,7 @@ export default class ImageGinPlugin extends Plugin {
 
         this.addCommand({
             id: 'convert-local-images-to-remote',
-            name: 'Convert Local Images to Remote Images',
+            name: 'Convert local images to remote images',
             callback: () => {
                 new ConvertLocalImagesForCurrentFile(this.app, this).open();
             }
@@ -89,7 +92,7 @@ export default class ImageGinPlugin extends Plugin {
 
         this.addCommand({
             id: 'batch-convert-directory-images',
-            name: 'Batch Convert Directory Images to Remote',
+            name: 'Batch convert directory images to remote',
             callback: () => {
                 new BatchDirectoryConvertLocalToRemote(this.app, this).open();
             }
@@ -97,7 +100,7 @@ export default class ImageGinPlugin extends Plugin {
 
         this.addCommand({
             id: 'search-magnific-images',
-            name: 'Search Magnific Images',
+            name: 'Search Magnific images',
             callback: () => {
                 if (this.settings.magnific.enabled) {
                     new MagnificModal(this.app, this).open();
@@ -109,7 +112,7 @@ export default class ImageGinPlugin extends Plugin {
 
         this.addCommand({
             id: 'generate-images-ideogram',
-            name: 'Generate Images (Ideogram)',
+            name: 'Generate images (Ideogram)',
             callback: () => {
                 if (this.settings.ideogram.enabled) {
                     new IdeogramModal(this.app, this).open();
@@ -146,11 +149,11 @@ export default class ImageGinPlugin extends Plugin {
         }
 
         this.addCommand({
-            id: 'image-gin-reset-drop-gate-session',
-            name: 'Drop Gate: Reset session-remembered destination',
+            id: 'reset-drop-gate-session',
+            name: 'Drop gate: Reset session-remembered destination',
             callback: () => {
                 this.dropGateHandlers?.resetSession();
-                new Notice('Image Gin: drop-gate session reset.');
+                new Notice('Image gin: drop-gate session reset.');
             }
         });
     }

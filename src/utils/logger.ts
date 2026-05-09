@@ -23,10 +23,10 @@ interface LogEntry {
  */
 export class FileLogger {
     private static instance: FileLogger;
-    // Plugin-folder path (matches the directory Obsidian uses for this plugin
-    // per manifest.json id). Kept as a constant so we never accidentally
-    // write a log.json to the user's vault root.
-    private logFile: string = '.obsidian/plugins/image-gin/log.json';
+    // Plugin-folder path resolved at initialize() from vault.configDir
+    // (the user can rename `.obsidian` → custom). Empty until init; calls
+    // before init fall through to console only.
+    private logFile: string = '';
     private vault: Vault | null = null;
     private logEntries: LogEntry[] = [];
     private isSaving = false;
@@ -42,6 +42,10 @@ export class FileLogger {
 
     initialize(vault: Vault): void {
         this.vault = vault;
+        // Resolve config dir once at init — Obsidian lets users rename
+        // `.obsidian/` to anything they want, so hardcoding is rejected
+        // by the marketplace lint.
+        this.logFile = `${vault.configDir}/plugins/image-gin/log.json`;
         void this.loadLogs();
     }
 
@@ -86,7 +90,7 @@ export class FileLogger {
             );
         } catch (error) {
             console.error('FileLogger: failed to write log file:', error);
-            new Notice('Image Gin: failed to save error log. See devtools console.');
+            new Notice('Image gin: failed to save error log. See devtools console.');
         } finally {
             this.isSaving = false;
         }
@@ -113,9 +117,19 @@ export class FileLogger {
 
         void this.saveLogs();
 
-        // Mirror to console so devtools workflow stays unchanged.
-        const logMethod = console[level] || console.log;
-        logMethod(`[${entry.timestamp}] [${level.toUpperCase()}] ${message}`, details ?? '');
+        // Mirror to console — only allow warn/error/debug per Obsidian
+        // marketplace rules; map info → debug, default → debug.
+        const formatted = `[${entry.timestamp}] [${level.toUpperCase()}] ${message}`;
+        switch (level) {
+            case 'error':
+                console.error(formatted, details ?? '');
+                break;
+            case 'warn':
+                console.warn(formatted, details ?? '');
+                break;
+            default:
+                console.debug(formatted, details ?? '');
+        }
     }
 
     error(message: string, details?: unknown): void { this.addEntry('error', message, details); }

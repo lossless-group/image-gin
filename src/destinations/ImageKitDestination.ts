@@ -45,7 +45,7 @@ export class ImageKitDestination implements DropGateDestination {
                 console.error('[image-gin/drop-gate] ImageKit upload returned no url', result);
                 throw new Error('ImageKit returned an empty URL — check console for the raw response.');
             }
-            console.log(`[image-gin/drop-gate] ImageKit upload → ${result.url}`);
+            console.debug(`[image-gin/drop-gate] ImageKit upload → ${result.url}`);
 
             const alt = file.name || 'image';
             const md = `![${alt}](${result.url})\n`;

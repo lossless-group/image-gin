@@ -4,7 +4,7 @@ import { Modal, Setting, Notice, FileSystemAdapter } from 'obsidian';
 import type { ToggleComponent } from 'obsidian';
 import type ImageGinPlugin from '../../main';
 import { ImageKitService } from '../services/imagekitService';
-import { readFileSync } from 'fs';
+import { readFileSync, unlinkSync } from 'fs';
 import { join } from 'path';
 
 interface ImageProperty {
@@ -61,7 +61,7 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
 
         // Check if ImageKit is enabled
         if (!this.plugin.settings.imageKit.enabled) {
-            contentEl.createEl('h2', { text: 'ImageKit Not Enabled' });
+            contentEl.createEl('h2', { text: 'ImageKit not enabled' });
             contentEl.createEl('p', { text: 'Please enable ImageKit CDN in the plugin settings first.' });
             return;
         }
@@ -80,7 +80,8 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
             // Frontmatter via Obsidian's metadata cache — correct on URL
             // values, multi-line strings, etc.; doesn't require us to also
             // parse YAML by hand.
-            const frontmatter = this.app.metadataCache.getFileCache(this.currentFile)?.frontmatter;
+            const frontmatter: Record<string, unknown> | undefined =
+                this.app.metadataCache.getFileCache(this.currentFile)?.frontmatter;
 
             // Body content is read separately because we still need to scan
             // it for `![[...]]` image links.
@@ -162,7 +163,7 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
 
         // Header
         const headerEl = contentEl.createDiv('image-gin-header');
-        headerEl.createEl('h2', { text: 'Convert Local Images to ImageKit CDN', cls: 'image-gin-title' });
+        headerEl.createEl('h2', { text: 'Convert local images to ImageKit CDN', cls: 'image-gin-title' });
 
         if (this.imageProperties.length === 0 && this.markdownImagePaths.length === 0) {
             contentEl.createEl('p', { text: 'No local images found in this file.' });
@@ -204,16 +205,12 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
         onMasterChange: (value: boolean) => void
     ): ToggleComponent | null {
         const header = section.createDiv('image-gin-section-header');
-        header.style.display = 'flex';
-        header.style.justifyContent = 'space-between';
-        header.style.alignItems = 'center';
-        header.createEl('span', { text: title });
+        header.addClass('image-gin-row');
+        header.createSpan({ text: title });
 
         const masterWrap = header.createDiv();
-        masterWrap.style.display = 'flex';
-        masterWrap.style.alignItems = 'center';
-        masterWrap.style.gap = '0.5rem';
-        masterWrap.createEl('span', {
+        masterWrap.addClass('image-gin-row-tight');
+        masterWrap.createSpan({
             text: 'All',
             attr: { style: 'font-size: 0.85em; opacity: 0.75;' },
         });
@@ -305,7 +302,7 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
 
     private renderProgressSection(containerEl: HTMLElement): void {
         this.progressEl = containerEl.createDiv('image-gin-progress');
-        this.progressEl.style.display = 'none';
+        this.progressEl.addClass('image-gin-hidden');
         
         this.progressEl.createEl('p', { 
             text: 'Converting images...',
@@ -377,7 +374,7 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
         const buttonContainer = containerEl.createDiv('image-gin-button-container');
         
         this.convertButton = buttonContainer.createEl('button', {
-            text: 'Convert Selected Images',
+            text: 'Convert selected images',
             cls: 'image-gin-button'
         });
 
@@ -413,7 +410,7 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
             // Read frontmatter via the metadata cache for tag extraction.
             // Frontmatter mutations below go through processFrontMatter
             // (atomic per-call), so we never serialize YAML by hand.
-            const cachedFrontmatter = this.app.metadataCache.getFileCache(file)?.frontmatter;
+            const cachedFrontmatter: Record<string, unknown> | undefined = this.app.metadataCache.getFileCache(file)?.frontmatter;
 
             // Body mutations are accumulated and flushed in a single
             // vault.read + vault.modify cycle after all uploads are done.
@@ -452,7 +449,7 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
                     );
 
                     // Update frontmatter with ImageKit URL via Obsidian's API
-                    await this.app.fileManager.processFrontMatter(file, (fm) => {
+                    await this.app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
                         fm[property.key] = uploadResult.url;
                     });
 
@@ -462,8 +459,7 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
                     // Optionally remove local file if setting is enabled
                     if (this.plugin.settings.imageKit.removeLocalFiles) {
                         try {
-                            const fs = require('fs');
-                            fs.unlinkSync(localPath);
+                            unlinkSync(localPath);
                             logger.info(`Removed local file: ${localPath}`);
                         } catch (removeError) {
                             logger.warn(`Failed to remove local file ${localPath}:`, removeError);
@@ -513,8 +509,7 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
                     // Optionally remove local file if setting is enabled
                     if (this.plugin.settings.imageKit.removeLocalFiles) {
                         try {
-                            const fs = require('fs');
-                            fs.unlinkSync(localPath);
+                            unlinkSync(localPath);
                             logger.info(`Removed local file: ${localPath}`);
                         } catch (removeError) {
                             logger.warn(`Failed to remove local file ${localPath}:`, removeError);
@@ -599,13 +594,13 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
 
     private showProgress(): void {
         if (this.progressEl) {
-            this.progressEl.style.display = 'block';
+            this.progressEl.removeClass('image-gin-hidden');
         }
     }
 
     private hideProgress(): void {
         if (this.progressEl) {
-            this.progressEl.style.display = 'none';
+            this.progressEl.addClass('image-gin-hidden');
         }
     }
 

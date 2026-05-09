@@ -1,0 +1,97 @@
+/* image-gin/src/styles/marketplace-compliance.css
+ *
+ * Replaces inline element.style.* assignments that ObsidianReviewBot rejects.
+ * Each class below corresponds to a specific render site in modals/ or
+ * settings/ where multiple style properties used to be set in a row.
+ *
+ * Pattern: when retrofitting, prefer addClass(...) for static styling.
+ * Use setCssProps({ '--var': value }) only when the value genuinely
+ * varies at runtime.
+ */
+
+/* ─── Show / hide ───────────────────────────────────────────────── */
+
+.image-gin-hidden {
+    display: none;
+}
+
+/* ─── Horizontal flex row used in modal headers / option groups ─── */
+
+.image-gin-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.image-gin-row-with-margin {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.image-gin-row-tight {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* ─── Full-width monospace textarea for JSON / template editors ── */
+
+.image-gin-text-area {
+    width: 100%;
+    min-height: 200px;
+    font-family: var(--font-monospace);
+}
+
+.image-gin-text-area-md {
+    width: 100%;
+    font-family: var(--font-monospace);
+}
+
+/* ─── Cache stats panel in settings ─────────────────────────────── */
+
+.image-gin-cache-stats {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: var(--background-secondary);
+    border-radius: 5px;
+}
+
+.image-gin-cache-stats-title {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+/* ─── Error text inside settings tab and modals ─────────────────── */
+
+.image-gin-error-text {
+    color: var(--text-error);
+}
+
+/* ─── Magnific error banner ─────────────────────────────────────── */
+
+.image-gin-error-banner {
+    color: var(--text-error);
+    margin: 10px 0;
+    padding: 10px;
+    border-left: 3px solid var(--text-error);
+    background-color: var(--background-modifier-error);
+}
+
+/* ─── Magnific image-search thumbnails ─────────────────────────── */
+
+.image-gin-thumb {
+    max-width: 100px;
+    max-height: 100px;
+}
+
+/* ─── Ideogram preview block (negative-prompt preview) ──────────── */
+
+.image-gin-preview {
+    white-space: pre-wrap;
+    padding: 8px;
+    background-color: var(--background-secondary);
+    border-radius: 4px;
+    font-size: 0.85em;
+}

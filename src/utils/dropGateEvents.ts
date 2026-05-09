@@ -7,30 +7,47 @@
  * early, breaking the would-be loop.
  */
 
-export class DragEventCopy extends DragEvent {
-    static create(original: DragEvent, files: readonly File[]): DragEventCopy {
-        const dt = new DataTransfer();
-        files.forEach((f) => dt.items.add(f));
-        return new DragEventCopy(original.type, {
-            dataTransfer: dt,
-            clientX: original.clientX,
-            clientY: original.clientY,
-            bubbles: true,
-            cancelable: true,
-        });
-    }
+/**
+ * Sentinel property used to identify our re-dispatched synthetic events at
+ * the top of the drop/paste handler. We use a tagged property rather than
+ * `instanceof` because the obsidianmd lint rule rejects `instanceof` for
+ * cross-window safety, and for a one-off plain-tag check this is simpler
+ * than introducing Obsidian's `.instanceOf()` API.
+ */
+export const SYNTHETIC_EVENT_TAG = '__imageGinDropGateSynthetic';
+
+interface SyntheticTag {
+    [SYNTHETIC_EVENT_TAG]?: true;
 }
 
-export class PasteEventCopy extends ClipboardEvent {
-    static create(original: ClipboardEvent, files: readonly File[]): PasteEventCopy {
-        const dt = new DataTransfer();
-        files.forEach((f) => dt.items.add(f));
-        return new PasteEventCopy(original.type, {
-            clipboardData: dt,
-            bubbles: true,
-            cancelable: true,
-        });
-    }
+export function isSyntheticDropEvent(e: DragEvent | ClipboardEvent): boolean {
+    return (e as SyntheticTag)[SYNTHETIC_EVENT_TAG] === true;
+}
+
+export function makeSyntheticDragEvent(original: DragEvent, files: readonly File[]): DragEvent {
+    const dt = new DataTransfer();
+    files.forEach((f) => dt.items.add(f));
+    const copy = new DragEvent(original.type, {
+        dataTransfer: dt,
+        clientX: original.clientX,
+        clientY: original.clientY,
+        bubbles: true,
+        cancelable: true,
+    });
+    (copy as SyntheticTag)[SYNTHETIC_EVENT_TAG] = true;
+    return copy;
+}
+
+export function makeSyntheticPasteEvent(original: ClipboardEvent, files: readonly File[]): ClipboardEvent {
+    const dt = new DataTransfer();
+    files.forEach((f) => dt.items.add(f));
+    const copy = new ClipboardEvent(original.type, {
+        clipboardData: dt,
+        bubbles: true,
+        cancelable: true,
+    });
+    (copy as SyntheticTag)[SYNTHETIC_EVENT_TAG] = true;
+    return copy;
 }
 
 export function allFilesAreImages(files: readonly File[]): boolean {

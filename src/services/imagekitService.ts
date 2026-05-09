@@ -124,10 +124,12 @@ export class ImageKitService {
                 throw new Error(`ImageKit upload failed with status ${response.status}: ${response.text}`);
             }
 
-            const result = typeof response.json === 'function' ? await response.json() : response.json;
+            const result: ImageKitUploadResult = (typeof response.json === 'function'
+                ? (await (response.json as () => Promise<unknown>)())
+                : response.json) as ImageKitUploadResult;
             logger.info('ImageKit upload successful:', result.url);
-            
-            return result as ImageKitUploadResult;
+
+            return result;
         } catch (error) {
             logger.error('Error uploading to ImageKit:', error);
             throw error;

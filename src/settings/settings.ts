@@ -265,7 +265,10 @@ export const DEFAULT_SETTINGS: ImageGinSettings = {
     },
     imageCache: {
         enabled: true,
-        cacheFolder: '.obsidian/plugins/image-gin/cache',
+        // Empty default — resolved at runtime to `${vault.configDir}/plugins/image-gin/cache`.
+        // Hardcoding `.obsidian/...` is rejected by the marketplace lint
+        // because users can rename their config dir.
+        cacheFolder: '',
         maxCacheSize: 100, // 100 MB
         autoCleanup: true,
         cleanupDays: 30,
@@ -297,7 +300,7 @@ export class ImageGinSettingTab extends PluginSettingTab {
 
     private renderImageSizeSettings(containerEl: HTMLElement): void {
         const sizesContainer = containerEl.createDiv('image-sizes-container');
-        sizesContainer.createEl('h3', { text: 'Image Size Presets' });
+        new Setting(sizesContainer).setName("Image size presets").setHeading();
         
         this.plugin.settings.imageSizes.forEach((size, index) => {
             const setting = new Setting(sizesContainer)
@@ -314,7 +317,7 @@ export class ImageGinSettingTab extends PluginSettingTab {
 
             // YAML Key
             setting.addText(text => text
-                .setPlaceholder('yaml_key')
+                .setPlaceholder('YAML_key')
                 .setValue(size.yamlKey)
                 .onChange(async (value) => {
                     size.yamlKey = value;
@@ -370,7 +373,7 @@ export class ImageGinSettingTab extends PluginSettingTab {
         new Setting(sizesContainer)
             .addButton(button => {
                 button
-                    .setButtonText('Add New Size')
+                    .setButtonText('Add new size')
                     .setCta()
                     .onClick(async () => {
                         this.plugin.settings.imageSizes.push({
@@ -386,26 +389,24 @@ export class ImageGinSettingTab extends PluginSettingTab {
             });
 
         // Styles Configuration Section
-        containerEl.createEl('h3', { text: 'Style Configurations' });
+        new Setting(containerEl).setName("Style configurations").setHeading();
         containerEl.createEl('p', {
             text: 'Configure style presets for image generation',
             cls: 'setting-item-description'
         });
 
         const stylesSetting = new Setting(containerEl)
-            .setName('Style Presets')
+            .setName('Style presets')
             .setDesc('JSON array of style configurations');
 
-        const stylesTextArea = document.createElement('textarea');
+        const stylesTextArea = activeDocument.createEl('textarea');
         stylesTextArea.rows = 10;
-        stylesTextArea.style.width = '100%';
-        stylesTextArea.style.minHeight = '200px';
-        stylesTextArea.style.fontFamily = 'monospace';
+        stylesTextArea.addClass('image-gin-text-area');
         stylesTextArea.placeholder = 'Enter style configurations as JSON...';
         
         // Format the JSON for display
         try {
-            const stylesJson = JSON.parse(this.plugin.settings.imageStylesJSON);
+            const stylesJson: unknown = JSON.parse(this.plugin.settings.imageStylesJSON);
             stylesTextArea.value = JSON.stringify(stylesJson, null, 2);
         } catch {
             // If not valid JSON, display as is
@@ -413,7 +414,7 @@ export class ImageGinSettingTab extends PluginSettingTab {
         }
         
         // Add input event listener
-        stylesTextArea.addEventListener('input', async () => {
+        stylesTextArea.addEventListener('input', () => void (async () => {
             try {
                 // Try to parse to validate JSON
                 JSON.parse(stylesTextArea.value);
@@ -426,7 +427,7 @@ export class ImageGinSettingTab extends PluginSettingTab {
                 this.plugin.settings.imageStylesJSON = stylesTextArea.value;
                 await this.plugin.saveSettings();
             }
-        });
+        })());
         
         // Add the textarea to the setting
         stylesSetting.settingEl.appendChild(stylesTextArea);
@@ -437,7 +438,7 @@ export class ImageGinSettingTab extends PluginSettingTab {
             .setDesc('')
             .addButton(button => {
                 button
-                    .setButtonText('Reset to Default')
+                    .setButtonText('Reset to default')
                     .onClick(async () => {
                         this.plugin.settings.imageStylesJSON = DEFAULT_IMAGE_STYLES_JSON;
                         await this.plugin.saveSettings();
@@ -451,14 +452,14 @@ export class ImageGinSettingTab extends PluginSettingTab {
         const { containerEl } = this;
         containerEl.empty();
 
-        containerEl.createEl('h1', { text: 'Image Gin Settings' });
+        ;
 
         // === RECRAFT IMAGE GENERATION SETTINGS ===
-        containerEl.createEl('h2', { text: '🎨 Recraft Image Generation' });
+        new Setting(containerEl).setName("🎨 Recraft image generation").setHeading();
         
         // API Key
         new Setting(containerEl)
-            .setName('Recraft API Key')
+            .setName('Recraft API key')
             .setDesc('Your Recraft.ai API key for image generation')
             .addText(text => text
                 .setPlaceholder('Enter your API key')
@@ -484,10 +485,10 @@ export class ImageGinSettingTab extends PluginSettingTab {
 
         // Base URL setting
         new Setting(containerEl)
-            .setName('ReCraft API Base URL')
-            .setDesc('ReCraft API base URL (change only if using custom endpoint)')
+            .setName('Recraft API base URL')
+            .setDesc('Recraft API base URL (change only if using custom endpoint)')
             .addText(text => text
-                .setPlaceholder('https://external.api.recraft.ai/v1/images/generations')
+                .setPlaceholder('HTTPS://external.API.Recraft.ai/v1/images/generations')
                 .setValue(this.plugin.settings.recraftBaseUrl)
                 .onChange(async (value) => {
                     this.plugin.settings.recraftBaseUrl = value;
@@ -496,10 +497,10 @@ export class ImageGinSettingTab extends PluginSettingTab {
 
         // Image Output Folder setting
         new Setting(containerEl)
-            .setName('Image Output Folder')
-            .setDesc('Folder path where generated images will be saved. Use absolute path (e.g., /Users/username/path) or relative to vault root')
+            .setName('Image output folder')
+            .setDesc('Folder path where generated images will be saved. Use absolute path (e.g., /users/username/path) or relative to vault root')
             .addText(text => text
-                .setPlaceholder('assets/ImageGin')
+                .setPlaceholder('Assets/ImageGin')
                 .setValue(this.plugin.settings.imageOutputFolder)
                 .onChange(async (value) => {
                     this.plugin.settings.imageOutputFolder = value;
@@ -510,7 +511,7 @@ export class ImageGinSettingTab extends PluginSettingTab {
         this.renderImageSizeSettings(containerEl);
 
         // === IMAGEKIT CDN SETTINGS ===
-        containerEl.createEl('h2', { text: '☁️ ImageKit CDN Upload & Hosting' });
+        new Setting(containerEl).setName("☁️ ImageKit CDN upload & hosting").setHeading();
         
         // ImageKit Enable Toggle
         new Setting(containerEl)
@@ -525,10 +526,10 @@ export class ImageGinSettingTab extends PluginSettingTab {
 
         // ImageKit Public Key
         new Setting(containerEl)
-            .setName('ImageKit Public Key')
+            .setName('ImageKit public key')
             .setDesc('Your ImageKit public key (found in ImageKit dashboard)')
             .addText(text => text
-                .setPlaceholder('public_key_here')
+                .setPlaceholder('Public_key_here')
                 .setValue(this.plugin.settings.imageKit.publicKey)
                 .onChange(async (value) => {
                     this.plugin.settings.imageKit.publicKey = value;
@@ -537,10 +538,10 @@ export class ImageGinSettingTab extends PluginSettingTab {
 
         // ImageKit Private Key
         new Setting(containerEl)
-            .setName('ImageKit Private Key')
+            .setName('ImageKit private key')
             .setDesc('Your ImageKit private key (keep this secure!)')
             .addText(text => text
-                .setPlaceholder('private_key_here')
+                .setPlaceholder('Private_key_here')
                 .setValue(this.plugin.settings.imageKit.privateKey)
                 .onChange(async (value) => {
                     this.plugin.settings.imageKit.privateKey = value;
@@ -549,10 +550,10 @@ export class ImageGinSettingTab extends PluginSettingTab {
 
         // ImageKit URL Endpoint
         new Setting(containerEl)
-            .setName('ImageKit URL Endpoint')
+            .setName('ImageKit URL endpoint')
             .setDesc('Your ImageKit CDN URL endpoint for serving images')
             .addText(text => text
-                .setPlaceholder('https://ik.imagekit.io/your-imagekit-id')
+                .setPlaceholder('HTTPS://ik.ImageKit.io/your-ImageKit-id')
                 .setValue(this.plugin.settings.imageKit.urlEndpoint)
                 .onChange(async (value) => {
                     this.plugin.settings.imageKit.urlEndpoint = value;
@@ -561,10 +562,10 @@ export class ImageGinSettingTab extends PluginSettingTab {
 
         // ImageKit Upload Endpoint
         new Setting(containerEl)
-            .setName('ImageKit Upload Endpoint')
+            .setName('ImageKit upload endpoint')
             .setDesc('ImageKit API endpoint for uploading files')
             .addText(text => text
-                .setPlaceholder('https://upload.imagekit.io/api/v1/files/upload')
+                .setPlaceholder('HTTPS://upload.ImageKit.io/API/v1/files/upload')
                 .setValue(this.plugin.settings.imageKit.uploadEndpoint)
                 .onChange(async (value) => {
                     this.plugin.settings.imageKit.uploadEndpoint = value;
@@ -573,7 +574,7 @@ export class ImageGinSettingTab extends PluginSettingTab {
 
         // ImageKit Upload Folder
         new Setting(containerEl)
-            .setName('ImageKit Upload Folder')
+            .setName('ImageKit upload folder')
             .setDesc('Folder path in ImageKit where images will be uploaded')
             .addText(text => text
                 .setPlaceholder('/uploads/lossless/images')
@@ -585,7 +586,7 @@ export class ImageGinSettingTab extends PluginSettingTab {
 
         // Remove Local Files Toggle
         new Setting(containerEl)
-            .setName('Remove Local Files After Upload')
+            .setName('Remove local files after upload')
             .setDesc('Delete local image files after successful upload to ImageKit')
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.imageKit.removeLocalFiles)
@@ -606,11 +607,11 @@ export class ImageGinSettingTab extends PluginSettingTab {
                 }));
 
         // Magnific Settings Section
-        containerEl.createEl('h3', { text: 'Magnific Image Search' });
+        new Setting(containerEl).setName("Magnific image search").setHeading();
 
         // Magnific Enable Toggle
         new Setting(containerEl)
-            .setName('Enable Magnific Integration')
+            .setName('Enable Magnific integration')
             .setDesc('Enable Magnific image search functionality')
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.magnific.enabled)
@@ -623,7 +624,7 @@ export class ImageGinSettingTab extends PluginSettingTab {
         if (this.plugin.settings.magnific.enabled) {
             // Magnific API Key
             new Setting(containerEl)
-                .setName('Magnific API Key')
+                .setName('Magnific API key')
                 .setDesc('Your Magnific API key for accessing the image search service')
                 .addText(text => text
                     .setPlaceholder('Enter your Magnific API key')
@@ -635,7 +636,7 @@ export class ImageGinSettingTab extends PluginSettingTab {
 
             // Default License Type
             new Setting(containerEl)
-                .setName('Default License Type')
+                .setName('Default license type')
                 .setDesc('Default license type for Magnific image searches')
                 .addDropdown(dropdown => dropdown
                     .addOption('freemium', 'Freemium')
@@ -648,7 +649,7 @@ export class ImageGinSettingTab extends PluginSettingTab {
 
             // Default Image Count
             new Setting(containerEl)
-                .setName('Default Image Count')
+                .setName('Default image count')
                 .setDesc('Default number of images to fetch in search results (1-50)')
                 .addSlider(slider => slider
                     .setLimits(1, 50, 1)
@@ -661,10 +662,10 @@ export class ImageGinSettingTab extends PluginSettingTab {
         }
 
         // === IDEOGRAM IMAGE GENERATION SETTINGS ===
-        containerEl.createEl('h2', { text: '🖼️ Ideogram Image Generation' });
+        new Setting(containerEl).setName("🖼️ Ideogram image generation").setHeading();
 
         new Setting(containerEl)
-            .setName('Enable Ideogram Integration')
+            .setName('Enable Ideogram integration')
             .setDesc('Generate images via Ideogram v3 with brand-template prompt wrapping')
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.ideogram.enabled)
@@ -676,8 +677,8 @@ export class ImageGinSettingTab extends PluginSettingTab {
 
         if (this.plugin.settings.ideogram.enabled) {
             new Setting(containerEl)
-                .setName('Ideogram API Key')
-                .setDesc('Your Ideogram API key (sent as the Api-Key header)')
+                .setName('Ideogram API key')
+                .setDesc('Your Ideogram API key (sent as the API-Key header)')
                 .addText(text => text
                     .setPlaceholder('Enter your Ideogram API key')
                     .setValue(this.plugin.settings.ideogram.apiKey)
@@ -686,7 +687,7 @@ export class ImageGinSettingTab extends PluginSettingTab {
                         await this.plugin.saveSettings();
                     }));
 
-            containerEl.createEl('h3', { text: 'Brand Template' });
+            new Setting(containerEl).setName("Brand template").setHeading();
             const brandIntro = containerEl.createDiv({ cls: 'setting-item-description' });
             brandIntro.createEl('p', {
                 text: 'Prepends/appends fixed text to every per-file prompt so all generated images share a consistent style. The per-file prompt itself is the file\'s image_prompt frontmatter (or whatever you type in the modal). There are two assembly patterns:',
@@ -695,7 +696,7 @@ export class ImageGinSettingTab extends PluginSettingTab {
             const li1 = list.createEl('li');
             li1.createEl('strong', { text: 'Bookends ' });
             li1.appendText('— leave both fields as plain text. The prefix goes before the per-file prompt and the suffix goes after. Final = ');
-            li1.createEl('code', { text: 'prefix + per-file prompt + suffix' });
+            li1.createEl('code', { text: 'Prefix + per-file prompt + suffix' });
             li1.appendText('. Good when your style guide naturally brackets the subject (e.g. prefix = "Editorial illustration of:", suffix = "in our house style, soft pastel background").');
             const li2 = list.createEl('li');
             li2.createEl('strong', { text: 'Slot insertion ' });
@@ -703,7 +704,7 @@ export class ImageGinSettingTab extends PluginSettingTab {
             li2.createEl('code', { text: '{prompt}' });
             li2.appendText(' somewhere in the prefix. The per-file prompt is substituted at that exact position and the suffix is ignored. Good when the per-file prompt needs to land mid-sentence (e.g. prefix = "Editorial illustration in our house style: {prompt}, on a soft pastel background").');
             brandIntro.createEl('p', {
-                text: 'Use the modal\'s Resolved Prompt Preview to see exactly what gets sent to Ideogram before generating.',
+                text: 'Use the modal\'s resolved prompt preview to see exactly what gets sent to Ideogram before generating.',
             });
 
             const renderTextarea = (
@@ -714,15 +715,14 @@ export class ImageGinSettingTab extends PluginSettingTab {
                 setValue: (value: string) => Promise<void>
             ): void => {
                 const setting = new Setting(containerEl).setName(name).setDesc(desc);
-                const textarea = document.createElement('textarea');
+                const textarea = activeDocument.createEl('textarea');
                 textarea.rows = 3;
-                textarea.style.width = '100%';
-                textarea.style.fontFamily = 'monospace';
+                textarea.addClass('image-gin-text-area-md');
                 textarea.placeholder = placeholder;
                 textarea.value = getValue();
-                textarea.addEventListener('input', async () => {
+                textarea.addEventListener('input', () => void (async () => {
                     await setValue(textarea.value);
-                });
+                })());
                 setting.settingEl.appendChild(textarea);
             };
 
@@ -759,11 +759,11 @@ export class ImageGinSettingTab extends PluginSettingTab {
                 }
             );
 
-            containerEl.createEl('h3', { text: 'Defaults' });
+            new Setting(containerEl).setName("Defaults").setHeading();
 
             new Setting(containerEl)
                 .setName('Rendering speed')
-                .setDesc('Cost/quality tradeoff. QUALITY costs the most.')
+                .setDesc('Cost/quality tradeoff. Quality costs the most.')
                 .addDropdown(dropdown => {
                     for (const v of IDEOGRAM_RENDERING_SPEEDS) dropdown.addOption(v, v);
                     dropdown
@@ -789,7 +789,7 @@ export class ImageGinSettingTab extends PluginSettingTab {
 
             new Setting(containerEl)
                 .setName('Magic prompt')
-                .setDesc('Whether Ideogram is allowed to rewrite your prompt. OFF preserves brand voice exactly.')
+                .setDesc('Whether Ideogram is allowed to rewrite your prompt. Off preserves brand voice exactly.')
                 .addDropdown(dropdown => {
                     for (const v of IDEOGRAM_MAGIC_PROMPTS) dropdown.addOption(v, v);
                     dropdown
@@ -802,7 +802,7 @@ export class ImageGinSettingTab extends PluginSettingTab {
 
             new Setting(containerEl)
                 .setName('Layerize text after generate')
-                .setDesc('Run the Layerize Text endpoint to strip incidental text. Modal can override per-call.')
+                .setDesc('Run the layerize text endpoint to strip incidental text. Modal can override per-call.')
                 .addToggle(toggle => toggle
                     .setValue(this.plugin.settings.ideogram.layerizeText)
                     .onChange(async (value) => {
@@ -811,13 +811,13 @@ export class ImageGinSettingTab extends PluginSettingTab {
                     }));
         }
 
-        // === IMAGE CACHE SETTINGS ===
-        containerEl.createEl('h2', { text: '🗂️ Image Cache Settings' });
+        // === IMAGE CACHE ===
+        new Setting(containerEl).setName('Image cache').setHeading();
         
         // Image Cache Enable Toggle
         new Setting(containerEl)
-            .setName('Enable Image Caching')
-            .setDesc('Cache external images locally to bypass CSP restrictions and enable offline viewing')
+            .setName('Enable image caching')
+            .setDesc('Cache external images locally to bypass csp restrictions and enable offline viewing')
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.imageCache.enabled)
                 .onChange(async (value) => {
@@ -829,10 +829,10 @@ export class ImageGinSettingTab extends PluginSettingTab {
         if (this.plugin.settings.imageCache.enabled) {
             // Cache Folder
             new Setting(containerEl)
-                .setName('Cache Folder')
+                .setName('Cache folder')
                 .setDesc('Folder path where cached images will be stored (relative to vault root)')
                 .addText(text => text
-                    .setPlaceholder('.obsidian/plugins/image-gin/cache')
+                    .setPlaceholder('.Obsidian/plugins/image-gin/cache')
                     .setValue(this.plugin.settings.imageCache.cacheFolder)
                     .onChange(async (value) => {
                         this.plugin.settings.imageCache.cacheFolder = value;
@@ -841,7 +841,7 @@ export class ImageGinSettingTab extends PluginSettingTab {
 
             // Max Cache Size
             new Setting(containerEl)
-                .setName('Max Cache Size (MB)')
+                .setName('Max cache size (mb)')
                 .setDesc('Maximum size of the image cache in megabytes')
                 .addText(text => text
                     .setPlaceholder('100')
@@ -856,7 +856,7 @@ export class ImageGinSettingTab extends PluginSettingTab {
 
             // Auto Cleanup
             new Setting(containerEl)
-                .setName('Auto Cleanup')
+                .setName('Auto cleanup')
                 .setDesc('Automatically clean up old cached images')
                 .addToggle(toggle => toggle
                     .setValue(this.plugin.settings.imageCache.autoCleanup)
@@ -869,7 +869,7 @@ export class ImageGinSettingTab extends PluginSettingTab {
             if (this.plugin.settings.imageCache.autoCleanup) {
                 // Cleanup Days
                 new Setting(containerEl)
-                    .setName('Cleanup Days')
+                    .setName('Cleanup days')
                     .setDesc('Remove cached images older than this many days')
                     .addText(text => text
                         .setPlaceholder('30')
@@ -885,10 +885,10 @@ export class ImageGinSettingTab extends PluginSettingTab {
 
             // Clear Cache Button
             new Setting(containerEl)
-                .setName('Clear Cache')
+                .setName('Clear cache')
                 .setDesc('Remove all cached images to free up space')
                 .addButton(button => button
-                    .setButtonText('Clear Cache')
+                    .setButtonText('Clear cache')
                     .setWarning()
                     .onClick(async () => {
                         try {
@@ -905,17 +905,14 @@ export class ImageGinSettingTab extends PluginSettingTab {
 
             // Cache Stats
             const statsDiv = containerEl.createDiv('cache-stats');
-            statsDiv.style.marginTop = '10px';
-            statsDiv.style.padding = '10px';
-            statsDiv.style.backgroundColor = 'var(--background-secondary)';
-            statsDiv.style.borderRadius = '5px';
+            statsDiv.addClass('image-gin-cache-stats');
             
             // Load and display cache stats
             void this.loadCacheStats(statsDiv);
         }
 
         // ─── Drop Gate ──────────────────────────────────────────────
-        containerEl.createEl('h3', { text: 'Drag-Drop / Paste Confirmation Gate' });
+        new Setting(containerEl).setName("Drag-Drop / paste confirmation gate").setHeading();
         containerEl.createEl('p', {
             text: 'When enabled, every image dropped or pasted into a note opens a confirmation modal asking where it should go: vault attachments, ImageKit, or Imgur. Built for writers who handle private client imagery and want every image destination to be a deliberate decision.',
             cls: 'image-gin-settings-blurb',
@@ -986,7 +983,7 @@ export class ImageGinSettingTab extends PluginSettingTab {
         }
 
         // ─── Imgur (public CDN) ─────────────────────────────────────
-        containerEl.createEl('h3', { text: 'Imgur (public CDN)' });
+        new Setting(containerEl).setName("Imgur (public CDN)").setHeading();
 
         new Setting(containerEl)
             .setName('Enable Imgur destination')
@@ -1002,7 +999,7 @@ export class ImageGinSettingTab extends PluginSettingTab {
         if (this.plugin.settings.imgur.enabled) {
             new Setting(containerEl)
                 .setName('Imgur client ID')
-                .setDesc('Anonymous client ID from imgur.com/account → Applications. Not the secret.')
+                .setDesc('Anonymous client ID from Imgur.com/account → applications. Not the secret.')
                 .addText((t) => {
                     t.inputEl.type = 'password';
                     t.setValue(this.plugin.settings.imgur.clientId).onChange(async (v) => {
@@ -1021,15 +1018,14 @@ export class ImageGinSettingTab extends PluginSettingTab {
             const stats = cacheService.getCacheStats();
 
             const title = container.createDiv();
-            title.style.fontWeight = 'bold';
-            title.style.marginBottom = '5px';
-            title.setText('Cache Statistics');
+            title.addClass('image-gin-cache-stats-title');
+            title.setText('Cache statistics');
             container.createDiv({ text: `Files: ${stats.totalImages}` });
             container.createDiv({ text: `Size: ${stats.cacheSize}` });
         } catch (error) {
             logger.error('Failed to load cache stats:', error);
             const errEl = container.createDiv({ text: 'Failed to load cache statistics' });
-            errEl.style.color = 'var(--text-error)';
+            errEl.addClass('image-gin-error-text');
         }
     }
 }

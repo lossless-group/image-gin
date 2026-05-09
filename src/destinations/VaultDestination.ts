@@ -1,7 +1,7 @@
 import type { App, TFile } from 'obsidian';
 import { Notice } from 'obsidian';
 import type { DropGateContext, DropGateDestination } from './types';
-import { DragEventCopy, PasteEventCopy, fileNameFor } from '../utils/dropGateEvents';
+import { makeSyntheticDragEvent, makeSyntheticPasteEvent, fileNameFor } from '../utils/dropGateEvents';
 
 /**
  * Internal-clipboard-manager surface — undocumented in obsidian.d.ts but
@@ -37,9 +37,9 @@ export class VaultDestination implements DropGateDestination {
         if (clip) {
             try {
                 if (ctx.originalEvent instanceof DragEvent) {
-                    clip.handleDrop(DragEventCopy.create(ctx.originalEvent, files));
+                    clip.handleDrop(makeSyntheticDragEvent(ctx.originalEvent, files));
                 } else {
-                    clip.handlePaste(PasteEventCopy.create(ctx.originalEvent, files));
+                    clip.handlePaste(makeSyntheticPasteEvent(ctx.originalEvent, files));
                 }
                 return;
             } catch (err) {
@@ -58,7 +58,7 @@ export class VaultDestination implements DropGateDestination {
     private async fallbackInsert(files: readonly File[], ctx: DropGateContext): Promise<void> {
         const activeFile = this.app.workspace.getActiveFile();
         if (!activeFile) {
-            new Notice('Image Gin: no active file for vault drop.');
+            new Notice('Image gin: no active file for vault drop.');
             return;
         }
 

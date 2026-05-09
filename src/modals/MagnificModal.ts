@@ -72,7 +72,7 @@ export class MagnificModal extends Modal {
         };
 
         // Results container
-        this.contentEl.createEl('h3', { text: 'Search Results' });
+        this.contentEl.createEl('h3', { text: 'Search results' });
         this.resultsContainer = this.contentEl.createDiv('magnific-results');
 
         // Initial search if there's a query
@@ -114,19 +114,16 @@ export class MagnificModal extends Modal {
 
             if (this.resultsContainer) {
                 this.resultsContainer.empty();
-                const errorEl = this.resultsContainer.createEl('div', {
+                const errorEl = this.resultsContainer.createDiv({
                     text: `Error searching for "${this.searchQuery}": ${errorMessage}`,
                     cls: 'magnific-error-message'
                 });
-                errorEl.style.color = 'red';
-                errorEl.style.margin = '10px 0';
-                errorEl.style.padding = '10px';
-                errorEl.style.borderLeft = '3px solid red';
-                errorEl.style.backgroundColor = 'var(--background-modifier-error)';
+                errorEl.addClass('image-gin-error-banner');
+
 
                 // Add retry button
                 const retryButton = this.resultsContainer.createEl('button', {
-                    text: 'Retry Search',
+                    text: 'Retry search',
                     cls: 'mod-cta'
                 });
                 retryButton.onclick = () => this.performSearch();
@@ -212,7 +209,7 @@ export class MagnificModal extends Modal {
             loadingDiv.textContent = 'Failed to cache images. Displaying original images...';
 
             // Fallback to original display method
-            setTimeout(() => {
+            activeWindow.setTimeout(() => {
                 loadingDiv.remove();
                 this.displayImagesWithoutCache(images, imageGrid);
             }, 2000);
@@ -257,8 +254,7 @@ export class MagnificModal extends Modal {
                 },
                 cls: 'magnific-thumbnail'
             });
-            img.style.maxWidth = '100px';
-            img.style.maxHeight = '100px';
+            img.addClass('image-gin-thumb');
 
             const title = image.title || 'Untitled';
             imgContainer.createEl('p', {

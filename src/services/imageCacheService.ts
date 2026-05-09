@@ -20,7 +20,12 @@ export class ImageCacheService {
     constructor(app: App, settings: ImageGinSettings) {
         this.app = app;
         this.settings = settings;
-        this.cacheFolder = this.settings.imageCache.cacheFolder;
+        // Resolve cache folder: settings override wins; empty falls back to
+        // `${configDir}/plugins/image-gin/cache` (configDir is user-renameable).
+        const fromSettings = this.settings.imageCache.cacheFolder?.trim();
+        this.cacheFolder = fromSettings && fromSettings.length > 0
+            ? fromSettings
+            : `${this.app.vault.configDir}/plugins/image-gin/cache`;
         void this.ensureCacheFolder();
     }
 

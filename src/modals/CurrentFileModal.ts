@@ -70,8 +70,9 @@ export class CurrentFileModal extends Modal {
             // parser (correct on multi-line strings, URL values with colons,
             // anchors, etc.) and avoids a vault.read for a value we may not
             // even use.
-            const fm = this.app.metadataCache.getFileCache(file)?.frontmatter;
-            const raw = fm?.[key];
+            const fm: Record<string, unknown> | undefined =
+                this.app.metadataCache.getFileCache(file)?.frontmatter;
+            const raw: unknown = fm?.[key];
 
             if (raw === undefined) {
                 // Key absent (or file has no frontmatter at all). Write an
@@ -81,7 +82,7 @@ export class CurrentFileModal extends Modal {
                 // the modal's "Write prompt to frontmatter" toggle to make it
                 // appear later. processFrontMatter creates the frontmatter
                 // block if it doesn't exist.
-                await this.app.fileManager.processFrontMatter(file, (m) => {
+                await this.app.fileManager.processFrontMatter(file, (m: Record<string, unknown>) => {
                     if (m[key] === undefined) m[key] = '';
                 });
             } else {
@@ -98,7 +99,7 @@ export class CurrentFileModal extends Modal {
 
         // Header
         const headerEl = contentEl.createDiv('image-gin-header');
-        headerEl.createEl('h2', { text: 'Generate Images', cls: 'image-gin-title' });
+        headerEl.createEl('h2', { text: 'Generate images', cls: 'image-gin-title' });
 
         // Image Prompt Section
         this.renderPromptSection(contentEl);
@@ -122,7 +123,7 @@ export class CurrentFileModal extends Modal {
     private renderPromptSection(containerEl: HTMLElement): void {
         const section = containerEl.createDiv('image-gin-section');
         const header = section.createDiv('image-gin-section-header');
-        header.createEl('span', { text: 'Image Prompt' });
+        header.createSpan({ text: 'Image Prompt' });
 
         const content = section.createDiv('image-gin-section-content');
         
@@ -143,16 +144,12 @@ export class CurrentFileModal extends Modal {
     private renderSizeSection(containerEl: HTMLElement): void {
         const section = containerEl.createDiv('image-gin-section');
         const header = section.createDiv('image-gin-section-header');
-        header.style.display = 'flex';
-        header.style.justifyContent = 'space-between';
-        header.style.alignItems = 'center';
-        header.createEl('span', { text: 'Image Sizes' });
+        header.addClass('image-gin-row');
+        header.createSpan({ text: 'Image Sizes' });
 
         const masterWrap = header.createDiv();
-        masterWrap.style.display = 'flex';
-        masterWrap.style.alignItems = 'center';
-        masterWrap.style.gap = '0.5rem';
-        masterWrap.createEl('span', {
+        masterWrap.addClass('image-gin-row-tight');
+        masterWrap.createSpan({
             text: 'All',
             attr: { style: 'font-size: 0.85em; opacity: 0.75;' },
         });
@@ -211,7 +208,7 @@ export class CurrentFileModal extends Modal {
     private renderStyleSection(containerEl: HTMLElement): void {
         const section = containerEl.createDiv('image-gin-section');
         const header = section.createDiv('image-gin-section-header');
-        header.createEl('span', { text: 'Style Configuration' });
+        header.createSpan({ text: 'Style Configuration' });
 
         const content = section.createDiv('image-gin-section-content');
         
@@ -248,7 +245,7 @@ export class CurrentFileModal extends Modal {
     private renderFrontmatterSection(containerEl: HTMLElement): void {
         const section = containerEl.createDiv('image-gin-section');
         const header = section.createDiv('image-gin-section-header');
-        header.createEl('span', { text: 'Frontmatter Options' });
+        header.createSpan({ text: 'Frontmatter Options' });
 
         const content = section.createDiv('image-gin-section-content');
         
@@ -265,7 +262,7 @@ export class CurrentFileModal extends Modal {
 
     private renderProgressSection(containerEl: HTMLElement): void {
         this.progressEl = containerEl.createDiv('image-gin-progress');
-        this.progressEl.style.display = 'none';
+        this.progressEl.addClass('image-gin-hidden');
         
         this.progressEl.createEl('p', { 
             text: 'Generating images...',
@@ -277,7 +274,7 @@ export class CurrentFileModal extends Modal {
         const buttonContainer = containerEl.createDiv();
         
         const generateBtn = buttonContainer.createEl('button', {
-            text: 'Generate Images',
+            text: 'Generate images',
             cls: 'image-gin-button'
         });
 
@@ -420,7 +417,7 @@ export class CurrentFileModal extends Modal {
             // Obsidian's own YAML emitter — handles edge cases (URL values,
             // multi-line strings, list-of-maps) the old hand-rolled emitter
             // mishandled.
-            await this.app.fileManager.processFrontMatter(file, (fm) => {
+            await this.app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
                 fm[key] = value;
             });
         } catch (error) {
@@ -434,7 +431,7 @@ export class CurrentFileModal extends Modal {
         const file = this.currentFile;
 
         try {
-            await this.app.fileManager.processFrontMatter(file, (fm) => {
+            await this.app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
                 fm[yamlKey] = imagePath;
             });
         } catch (error) {
@@ -445,13 +442,13 @@ export class CurrentFileModal extends Modal {
 
     private showProgress(): void {
         if (this.progressEl) {
-            this.progressEl.style.display = 'block';
+            this.progressEl.removeClass('image-gin-hidden');
         }
     }
 
     private hideProgress(): void {
         if (this.progressEl) {
-            this.progressEl.style.display = 'none';
+            this.progressEl.addClass('image-gin-hidden');
         }
     }
 

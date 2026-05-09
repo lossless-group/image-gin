@@ -1,6 +1,6 @@
 import { logger } from '../utils/logger';
-import type { App, TFile} from 'obsidian';
-import { Modal, Setting, Notice } from 'obsidian';
+import type { App } from 'obsidian';
+import { Modal, Setting, Notice, TFile } from 'obsidian';
 import type ImageGinPlugin from '../../main';
 import { ImageKitService } from '../services/imagekitService';
 import { dirname, basename } from 'path';
@@ -60,7 +60,7 @@ export class BatchDirectoryConvertLocalToRemote extends Modal {
 
     private renderImageKitDisabledMessage(containerEl: HTMLElement): void {
         const section = containerEl.createDiv('modal-section');
-        section.createEl('h3', { text: 'ImageKit Not Enabled' });
+        section.createEl('h3', { text: 'ImageKit not enabled' });
         
         const content = section.createDiv();
         content.createEl('p', { 
@@ -72,7 +72,7 @@ export class BatchDirectoryConvertLocalToRemote extends Modal {
         // Header
         const headerEl = containerEl.createDiv('image-gin-header');
         headerEl.createEl('h2', { 
-            text: 'Batch Convert Local Images to Remote', 
+            text: 'Batch convert local images to remote', 
             cls: 'image-gin-title' 
         });
 
@@ -94,12 +94,12 @@ export class BatchDirectoryConvertLocalToRemote extends Modal {
 
     private renderDirectorySection(containerEl: HTMLElement): void {
         const section = containerEl.createDiv('modal-section');
-        section.createEl('h3', { text: 'Directory Selection' });
+        section.createEl('h3', { text: 'Directory selection' });
 
         const content = section.createDiv();
         
         new Setting(content)
-            .setName('Directory Path')
+            .setName('Directory path')
             .setDesc('Current directory to scan for markdown files with local images')
             .addText(text => {
                 text.setValue(this.currentDirectory)
@@ -112,12 +112,12 @@ export class BatchDirectoryConvertLocalToRemote extends Modal {
 
     private renderSearchSection(containerEl: HTMLElement): void {
         const section = containerEl.createDiv('modal-section');
-        section.createEl('h3', { text: 'Search for Local Images' });
+        section.createEl('h3', { text: 'Search for local images' });
 
         const content = section.createDiv();
         
         const searchBtn = content.createEl('button', {
-            text: 'Search for Local Images',
+            text: 'Search for local images',
             cls: 'image-gin-button'
         });
 
@@ -128,13 +128,13 @@ export class BatchDirectoryConvertLocalToRemote extends Modal {
 
     private renderResultsSection(containerEl: HTMLElement): void {
         this.resultsEl = containerEl.createDiv('modal-section');
-        this.resultsEl.style.display = 'none';
+        this.resultsEl.addClass('image-gin-hidden');
         
         // Create header with justified layout
         const headerContainer = this.resultsEl.createDiv('flex-row');
-        headerContainer.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;';
+        headerContainer.addClass('image-gin-row-with-margin');
         
-        headerContainer.createEl('h3', { text: 'Found Local Images' });
+        headerContainer.createEl('h3', { text: 'Found local images' });
         
         // Select All checkbox in header
         const selectAllLabel = headerContainer.createEl('label', {
@@ -158,7 +158,7 @@ export class BatchDirectoryConvertLocalToRemote extends Modal {
 
     private renderProgressSection(containerEl: HTMLElement): void {
         this.progressEl = containerEl.createDiv('image-gin-progress');
-        this.progressEl.style.display = 'none';
+        this.progressEl.addClass('image-gin-hidden');
         
         this.progressEl.createEl('p', { 
             text: 'Processing...',
@@ -168,12 +168,12 @@ export class BatchDirectoryConvertLocalToRemote extends Modal {
 
     private renderConvertSection(containerEl: HTMLElement): void {
         const section = containerEl.createDiv('modal-section');
-        section.createEl('h3', { text: 'Convert Images' });
+        section.createEl('h3', { text: 'Convert images' });
 
         const content = section.createDiv();
         
         const convertBtn = content.createEl('button', {
-            text: 'Convert Images for Directory',
+            text: 'Convert images for directory',
             cls: 'image-gin-button'
         });
 
@@ -272,11 +272,11 @@ export class BatchDirectoryConvertLocalToRemote extends Modal {
         }
 
         if (this.localImages.length === 0) {
-            this.resultsEl.style.display = 'none';
+            this.resultsEl.addClass('image-gin-hidden');
             return;
         }
 
-        this.resultsEl.style.display = 'block';
+        this.resultsEl.removeClass('image-gin-hidden');
         const content = this.resultsEl.createDiv('setting-item');
         
         // Images table (Select All checkbox is now in the header)
@@ -414,14 +414,14 @@ export class BatchDirectoryConvertLocalToRemote extends Modal {
         imageKitService: ImageKitService
     ): Promise<void> {
         // Get the file from vault
-        const file = this.app.vault.getAbstractFileByPath(imageRef.filePath) as TFile;
-        if (!file) {
+        const file = this.app.vault.getAbstractFileByPath(imageRef.filePath);
+        if (!(file instanceof TFile)) {
             throw new Error(`File not found: ${imageRef.filePath}`);
         }
 
         // Read the image file
-        const imageFile = this.app.vault.getAbstractFileByPath(imageRef.imagePath) as TFile;
-        if (!imageFile) {
+        const imageFile = this.app.vault.getAbstractFileByPath(imageRef.imagePath);
+        if (!(imageFile instanceof TFile)) {
             throw new Error(`Image file not found: ${imageRef.imagePath}`);
         }
 
@@ -455,7 +455,7 @@ export class BatchDirectoryConvertLocalToRemote extends Modal {
 
     private showProgress(message: string): void {
         if (this.progressEl) {
-            this.progressEl.style.display = 'block';
+            this.progressEl.removeClass('image-gin-hidden');
             const textEl = this.progressEl.querySelector('.image-gin-progress-text');
             if (textEl) {
                 textEl.textContent = message;
@@ -474,7 +474,7 @@ export class BatchDirectoryConvertLocalToRemote extends Modal {
 
     private hideProgress(): void {
         if (this.progressEl) {
-            this.progressEl.style.display = 'none';
+            this.progressEl.addClass('image-gin-hidden');
         }
     }
 

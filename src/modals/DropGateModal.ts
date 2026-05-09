@@ -55,12 +55,12 @@ export class DropGateModal extends Modal {
         const fileList = contentEl.createDiv('idg-file-list');
         for (const f of this.opts.files) {
             const row = fileList.createDiv('idg-file-row');
-            row.createEl('span', { text: f.name || 'image', cls: 'idg-file-name' });
+            row.createSpan({ text: f.name || 'image', cls: 'idg-file-name' });
             const meta: string[] = [];
             if (f.size > 0) meta.push(formatFileSize(f.size));
             const t = f.type.replace(/^image\//, '');
             if (t) meta.push(t);
-            row.createEl('span', { text: meta.join(' · '), cls: 'idg-file-meta' });
+            row.createSpan({ text: meta.join(' · '), cls: 'idg-file-meta' });
         }
 
         const destList = contentEl.createDiv('idg-destinations');
@@ -80,12 +80,12 @@ export class DropGateModal extends Modal {
             });
 
             const text = row.createDiv('idg-destination-text');
-            text.createEl('div', { text: dest.label, cls: 'idg-destination-label' });
-            text.createEl('div', { text: dest.description, cls: 'idg-destination-desc' });
+            text.createDiv({ text: dest.label, cls: 'idg-destination-label' });
+            text.createDiv({ text: dest.description, cls: 'idg-destination-desc' });
             if (!available) {
                 const hint = this.opts.unavailableHints[dest.id]
                     ?? 'Not configured. Enable and configure in image-gin settings.';
-                text.createEl('div', { text: hint, cls: 'idg-destination-hint' });
+                text.createDiv({ text: hint, cls: 'idg-destination-hint' });
             }
         }
 
@@ -95,7 +95,7 @@ export class DropGateModal extends Modal {
             cb.addEventListener('change', () => {
                 this.rememberForSession = cb.checked;
             });
-            rememberRow.createEl('span', { text: 'Remember choice for this session' });
+            rememberRow.createSpan({ text: 'Remember choice for this session' });
         }
 
         const footer = contentEl.createDiv('idg-footer');
@@ -109,7 +109,7 @@ export class DropGateModal extends Modal {
             rememberForSession: this.rememberForSession,
         }));
 
-        setTimeout(() => insertBtn.focus(), 0);
+        activeWindow.setTimeout(() => insertBtn.focus(), 0);
     }
 
     onClose(): void {

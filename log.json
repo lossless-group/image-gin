@@ -5713,5 +5713,39 @@
     "level": "info",
     "message": "ImageKit upload successful:",
     "details": "https://ik.imagekit.io/xvpgfijuw/Image-Gin/2026-05/2026-05-08_Login-to-OpenPanel_8.07.13_PM_BxygpTZEQ.webp"
+  },
+  {
+    "timestamp": "2026-05-09T07:29:32.616Z",
+    "level": "info",
+    "message": "Uploading to ImageKit:",
+    "details": {
+      "fileName": "2026-05-09_Claude-Code_Session-Info_2.28.08 AM.webp",
+      "folder": "/Image-Gin/2026-05",
+      "endpoint": "https://upload.imagekit.io/api/v1/files/upload",
+      "contentLength": 810556
+    }
+  },
+  {
+    "timestamp": "2026-05-09T07:29:33.340Z",
+    "level": "info",
+    "message": "ImageKit upload successful:",
+    "details": "https://ik.imagekit.io/xvpgfijuw/Image-Gin/2026-05/2026-05-09_Claude-Code_Session-Info_2.28.08_AM_aswXt2zgV.webp"
+  },
+  {
+    "timestamp": "2026-05-09T08:15:42.489Z",
+    "level": "info",
+    "message": "Uploading to ImageKit:",
+    "details": {
+      "fileName": "2026-05-09_uv-python-package-manager_3.14.59 AM.webp",
+      "folder": "/Image-Gin/2026-05",
+      "endpoint": "https://upload.imagekit.io/api/v1/files/upload",
+      "contentLength": 148387
+    }
+  },
+  {
+    "timestamp": "2026-05-09T08:15:43.002Z",
+    "level": "info",
+    "message": "ImageKit upload successful:",
+    "details": "https://ik.imagekit.io/xvpgfijuw/Image-Gin/2026-05/2026-05-09_uv-python-package-manager_3.14.59_AM_R3pa9N3TX.webp"
   }
 ]

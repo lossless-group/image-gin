@@ -3,8 +3,7 @@ import { MarkdownView as MarkdownViewClass, Notice } from 'obsidian';
 import type { DropGateDestination, DropGateDestinationId } from '../destinations/types';
 import { DropGateModal } from '../modals/DropGateModal';
 import {
-    DragEventCopy,
-    PasteEventCopy,
+    isSyntheticDropEvent,
     allFilesAreImages,
     imagesIn,
 } from '../utils/dropGateEvents';
@@ -34,7 +33,7 @@ export class DropGateHandlers {
     onDrop = (e: DragEvent, editor: Editor, info: MarkdownView | MarkdownFileInfo): void => {
         // Re-entry guard. The synthetic copy our own VaultDestination
         // dispatches would otherwise loop back through here.
-        if (e instanceof DragEventCopy) return;
+        if (isSyntheticDropEvent(e)) return;
 
         const view = asMarkdownView(info);
         if (!view) return; // Canvas etc.: out of scope.
@@ -42,7 +41,11 @@ export class DropGateHandlers {
         const settings = this.plugin.settings.dropGate;
         if (!settings.enabled) return;
 
-        const files = Array.from(e.dataTransfer?.files ?? []);
+        // Pull files out of the DataTransfer. obsidian.d.ts re-exports
+        // the DOM DragEvent so dataTransfer is typed as the platform's
+        // DataTransfer | null; cast through unknown if needed.
+        const dt = e.dataTransfer;
+        const files: File[] = dt && dt.files ? Array.from(dt.files) : [];
         if (!allFilesAreImages(files)) return;
 
         // Synchronous preventDefault — must come before any await.
@@ -63,7 +66,7 @@ export class DropGateHandlers {
     };
 
     onPaste = (e: ClipboardEvent, editor: Editor, info: MarkdownView | MarkdownFileInfo): void => {
-        if (e instanceof PasteEventCopy) return;
+        if (isSyntheticDropEvent(e)) return;
 
         const view = asMarkdownView(info);
         if (!view) return;
@@ -71,7 +74,8 @@ export class DropGateHandlers {
         const settings = this.plugin.settings.dropGate;
         if (!settings.enabled) return;
 
-        const files = Array.from(e.clipboardData?.files ?? []);
+        const clipboardFiles: FileList | undefined = e.clipboardData?.files;
+        const files: File[] = clipboardFiles ? Array.from(clipboardFiles) : [];
         if (!allFilesAreImages(files)) return;
 
         e.preventDefault();
