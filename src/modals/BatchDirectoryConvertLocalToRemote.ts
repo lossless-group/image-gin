@@ -446,7 +446,7 @@ export class BatchDirectoryConvertLocalToRemote extends Modal {
         // Optionally remove local file if setting is enabled
         if (this.plugin.settings.imageKit.removeLocalFiles) {
             try {
-                await this.app.vault.delete(imageFile);
+                await this.app.fileManager.trashFile(imageFile);
             } catch (error) {
                 logger.warn(`Could not delete local file ${imageRef.imagePath}:`, error);
             }

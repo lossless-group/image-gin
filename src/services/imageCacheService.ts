@@ -153,7 +153,7 @@ export class ImageCacheService {
             const cacheFolder = this.app.vault.getAbstractFileByPath(this.cacheFolder);
             if (cacheFolder && cacheFolder instanceof TFile) {
                 // If it's a file, delete it
-                await this.app.vault.delete(cacheFolder);
+                await this.app.fileManager.trashFile(cacheFolder);
             } else if (cacheFolder) {
                 // If it's a folder, delete all files in it
                 const files = this.app.vault.getFiles().filter(file => 
@@ -161,7 +161,7 @@ export class ImageCacheService {
                 );
                 
                 for (const file of files) {
-                    await this.app.vault.delete(file);
+                    await this.app.fileManager.trashFile(file);
                 }
             }
             
