@@ -67,7 +67,7 @@ export class VaultDestination implements DropGateDestination {
 
         let pos = ctx.insertPos;
         for (const file of files) {
-            const safeName = await this.uniqueFileName(attachmentDir, fileNameFor(file));
+            const safeName = this.uniqueFileName(attachmentDir, fileNameFor(file));
             const buffer = await file.arrayBuffer();
             const path = attachmentDir ? `${attachmentDir}/${safeName}` : safeName;
             const written = await this.app.vault.createBinary(path, buffer);
@@ -94,7 +94,7 @@ export class VaultDestination implements DropGateDestination {
         await this.app.vault.createFolder(dir);
     }
 
-    private async uniqueFileName(dir: string, name: string): Promise<string> {
+    private uniqueFileName(dir: string, name: string): string {
         const dot = name.lastIndexOf('.');
         const base = dot > 0 ? name.substring(0, dot) : name;
         const ext = dot > 0 ? name.substring(dot) : '';

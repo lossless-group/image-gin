@@ -44,7 +44,7 @@ export class BatchDirectoryConvertLocalToRemote extends Modal {
         }
     }
 
-    async onOpen(): Promise<void> {
+    onOpen(): void {
         const { contentEl, modalEl } = this;
         contentEl.empty();
         modalEl.addClass('batch-directory-modal');

@@ -13,7 +13,7 @@ export class MagnificModal extends Modal {
     private searchQuery: string = '';
     private images: MagnificImage[] = [];
     private cachedImages: Map<string, CachedImage> = new Map();
-    private onSelect: (image: MagnificImage) => Promise<void>;
+    private onSelect: (image: MagnificImage) => void;
     private resultsContainer!: HTMLElement;
     private plugin: ImageGinPlugin;
 
@@ -23,7 +23,7 @@ export class MagnificModal extends Modal {
         this.magnificService = new MagnificService();
         this.magnificService.setApiKey(this.plugin.settings.magnific.apiKey);
         this.imageCacheService = new ImageCacheService(app, plugin.settings);
-        this.onSelect = async (image: MagnificImage) => {
+        this.onSelect = (image: MagnificImage) => {
             // Default implementation - insert image into current file.
             // image.url is the catalog *page* URL (.htm); image.image.source.url
             // is the actual image file.
@@ -195,7 +195,7 @@ export class MagnificModal extends Modal {
                     try {
                         // Cache the full-size image when selected
                         await this.cacheFullSizeImage(image);
-                        await this.onSelect(image);
+                        this.onSelect(image);
                         this.close();
                     } catch (error) {
                         logger.error('Error selecting image:', error);
@@ -264,7 +264,7 @@ export class MagnificModal extends Modal {
 
             imgContainer.onclick = async () => {
                 try {
-                    await this.onSelect(image);
+                    this.onSelect(image);
                     this.close();
                 } catch (error) {
                     logger.error('Error selecting image:', error);
