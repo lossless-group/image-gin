@@ -150,7 +150,7 @@ export default class ImageGinPlugin extends Plugin {
 
         this.addCommand({
             id: 'reset-drop-gate-session',
-            name: 'Drop gate: Reset session-remembered destination',
+            name: 'Drop gate: reset session-remembered destination',
             callback: () => {
                 this.dropGateHandlers?.resetSession();
                 new Notice('Image gin: drop-gate session reset.');

@@ -912,7 +912,7 @@ export class ImageGinSettingTab extends PluginSettingTab {
         }
 
         // ─── Drop Gate ──────────────────────────────────────────────
-        new Setting(containerEl).setName("Drag-Drop / paste confirmation gate").setHeading();
+        new Setting(containerEl).setName("Drag-drop / paste confirmation gate").setHeading();
         containerEl.createEl('p', {
             text: 'When enabled, every image dropped or pasted into a note opens a confirmation modal asking where it should go: vault attachments, ImageKit, or Imgur. Built for writers who handle private client imagery and want every image destination to be a deliberate decision.',
             cls: 'image-gin-settings-blurb',
