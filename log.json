@@ -5747,5 +5747,456 @@
     "level": "info",
     "message": "ImageKit upload successful:",
     "details": "https://ik.imagekit.io/xvpgfijuw/Image-Gin/2026-05/2026-05-09_uv-python-package-manager_3.14.59_AM_R3pa9N3TX.webp"
+  },
+  {
+    "timestamp": "2026-05-09T16:53:39.138Z",
+    "level": "info",
+    "message": "[Ideogram] handleGenerate: selectedSizes =",
+    "details": [
+      "banner",
+      "portrait",
+      "square",
+      "custom-1778192770886"
+    ]
+  },
+  {
+    "timestamp": "2026-05-09T16:53:39.138Z",
+    "level": "info",
+    "message": "[Ideogram] handleGenerate: sizes to generate =",
+    "details": [
+      "banner",
+      "portrait",
+      "square",
+      "custom-1778192770886"
+    ]
+  },
+  {
+    "timestamp": "2026-05-09T16:53:39.138Z",
+    "level": "info",
+    "message": "=== Ideogram Generate Request ==="
+  },
+  {
+    "timestamp": "2026-05-09T16:53:39.138Z",
+    "level": "info",
+    "message": "Aspect ratio:",
+    "details": "2x1"
+  },
+  {
+    "timestamp": "2026-05-09T16:53:39.138Z",
+    "level": "info",
+    "message": "Rendering speed:",
+    "details": "DEFAULT"
+  },
+  {
+    "timestamp": "2026-05-09T16:53:39.138Z",
+    "level": "info",
+    "message": "Style type:",
+    "details": "GENERAL"
+  },
+  {
+    "timestamp": "2026-05-09T16:53:39.138Z",
+    "level": "info",
+    "message": "Magic prompt:",
+    "details": "AUTO"
+  },
+  {
+    "timestamp": "2026-05-09T16:53:39.138Z",
+    "level": "info",
+    "message": "Has negative prompt:",
+    "details": true
+  },
+  {
+    "timestamp": "2026-05-09T16:53:39.138Z",
+    "level": "info",
+    "message": "Prompt preview:",
+    "details": "Right half of the canvas empty — uniform background, nothing on it. All subje..."
+  },
+  {
+    "timestamp": "2026-05-09T16:53:46.148Z",
+    "level": "info",
+    "message": "Downloading Ideogram image from ephemeral URL"
+  },
+  {
+    "timestamp": "2026-05-09T16:53:46.977Z",
+    "level": "info",
+    "message": "Downloaded image bytes:",
+    "details": 451203
+  },
+  {
+    "timestamp": "2026-05-09T16:53:46.989Z",
+    "level": "info",
+    "message": "=== Ideogram Generate Request ==="
+  },
+  {
+    "timestamp": "2026-05-09T16:53:46.989Z",
+    "level": "info",
+    "message": "Aspect ratio:",
+    "details": "9x16"
+  },
+  {
+    "timestamp": "2026-05-09T16:53:46.989Z",
+    "level": "info",
+    "message": "Rendering speed:",
+    "details": "DEFAULT"
+  },
+  {
+    "timestamp": "2026-05-09T16:53:46.989Z",
+    "level": "info",
+    "message": "Style type:",
+    "details": "GENERAL"
+  },
+  {
+    "timestamp": "2026-05-09T16:53:46.989Z",
+    "level": "info",
+    "message": "Magic prompt:",
+    "details": "AUTO"
+  },
+  {
+    "timestamp": "2026-05-09T16:53:46.989Z",
+    "level": "info",
+    "message": "Has negative prompt:",
+    "details": true
+  },
+  {
+    "timestamp": "2026-05-09T16:53:46.989Z",
+    "level": "info",
+    "message": "Prompt preview:",
+    "details": "Right half of the canvas empty — uniform background, nothing on it. All subje..."
+  },
+  {
+    "timestamp": "2026-05-09T16:53:54.157Z",
+    "level": "info",
+    "message": "Downloading Ideogram image from ephemeral URL"
+  },
+  {
+    "timestamp": "2026-05-09T16:53:55.536Z",
+    "level": "info",
+    "message": "Downloaded image bytes:",
+    "details": 1180113
+  },
+  {
+    "timestamp": "2026-05-09T16:53:55.546Z",
+    "level": "info",
+    "message": "=== Ideogram Generate Request ==="
+  },
+  {
+    "timestamp": "2026-05-09T16:53:55.546Z",
+    "level": "info",
+    "message": "Aspect ratio:",
+    "details": "1x1"
+  },
+  {
+    "timestamp": "2026-05-09T16:53:55.546Z",
+    "level": "info",
+    "message": "Rendering speed:",
+    "details": "DEFAULT"
+  },
+  {
+    "timestamp": "2026-05-09T16:53:55.546Z",
+    "level": "info",
+    "message": "Style type:",
+    "details": "GENERAL"
+  },
+  {
+    "timestamp": "2026-05-09T16:53:55.546Z",
+    "level": "info",
+    "message": "Magic prompt:",
+    "details": "AUTO"
+  },
+  {
+    "timestamp": "2026-05-09T16:53:55.546Z",
+    "level": "info",
+    "message": "Has negative prompt:",
+    "details": true
+  },
+  {
+    "timestamp": "2026-05-09T16:53:55.546Z",
+    "level": "info",
+    "message": "Prompt preview:",
+    "details": "Right half of the canvas empty — uniform background, nothing on it. All subje..."
+  },
+  {
+    "timestamp": "2026-05-09T16:54:02.391Z",
+    "level": "info",
+    "message": "Downloading Ideogram image from ephemeral URL"
+  },
+  {
+    "timestamp": "2026-05-09T16:54:03.101Z",
+    "level": "info",
+    "message": "Downloaded image bytes:",
+    "details": 629346
+  },
+  {
+    "timestamp": "2026-05-09T16:54:03.107Z",
+    "level": "info",
+    "message": "=== Ideogram Generate Request ==="
+  },
+  {
+    "timestamp": "2026-05-09T16:54:03.107Z",
+    "level": "info",
+    "message": "Aspect ratio:",
+    "details": "4x3"
+  },
+  {
+    "timestamp": "2026-05-09T16:54:03.107Z",
+    "level": "info",
+    "message": "Rendering speed:",
+    "details": "DEFAULT"
+  },
+  {
+    "timestamp": "2026-05-09T16:54:03.107Z",
+    "level": "info",
+    "message": "Style type:",
+    "details": "GENERAL"
+  },
+  {
+    "timestamp": "2026-05-09T16:54:03.107Z",
+    "level": "info",
+    "message": "Magic prompt:",
+    "details": "AUTO"
+  },
+  {
+    "timestamp": "2026-05-09T16:54:03.107Z",
+    "level": "info",
+    "message": "Has negative prompt:",
+    "details": true
+  },
+  {
+    "timestamp": "2026-05-09T16:54:03.107Z",
+    "level": "info",
+    "message": "Prompt preview:",
+    "details": "Right half of the canvas empty — uniform background, nothing on it. All subje..."
+  },
+  {
+    "timestamp": "2026-05-09T16:54:10.503Z",
+    "level": "info",
+    "message": "Downloading Ideogram image from ephemeral URL"
+  },
+  {
+    "timestamp": "2026-05-09T16:54:10.993Z",
+    "level": "info",
+    "message": "Downloaded image bytes:",
+    "details": 523382
+  },
+  {
+    "timestamp": "2026-05-09T16:55:11.681Z",
+    "level": "info",
+    "message": "Found image properties:",
+    "details": [
+      {
+        "key": "banner_image",
+        "value": "Visuals/ImageGin/ideogram-image_2048x1024_1778345626978.png",
+        "isLocalFile": true
+      },
+      {
+        "key": "portrait_image",
+        "value": "Visuals/ImageGin/ideogram-image_1024x1820_1778345635536.png",
+        "isLocalFile": true
+      },
+      {
+        "key": "square_image",
+        "value": "Visuals/ImageGin/ideogram-image_1024x1024_1778345643101.png",
+        "isLocalFile": true
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-05-09T16:55:11.681Z",
+    "level": "info",
+    "message": "Found markdown images:",
+    "details": []
+  },
+  {
+    "timestamp": "2026-05-09T16:55:19.822Z",
+    "level": "info",
+    "message": "Uploading to ImageKit:",
+    "details": {
+      "fileName": "Company Brains_banner_image_1778345719822.webp",
+      "folder": "/Image-Gin/2026-05",
+      "tags": "",
+      "endpoint": "https://upload.imagekit.io/api/v1/files/upload",
+      "contentLength": 451673
+    }
+  },
+  {
+    "timestamp": "2026-05-09T16:55:20.487Z",
+    "level": "info",
+    "message": "ImageKit upload successful:",
+    "details": "https://ik.imagekit.io/xvpgfijuw/Image-Gin/2026-05/Company_Brains_banner_image_1778345719822_Q9xr7BjlR.webp"
+  },
+  {
+    "timestamp": "2026-05-09T16:55:20.494Z",
+    "level": "info",
+    "message": "Successfully converted banner_image: https://ik.imagekit.io/xvpgfijuw/Image-Gin/2026-05/Company_Brains_banner_image_1778345719822_Q9xr7BjlR.webp"
+  },
+  {
+    "timestamp": "2026-05-09T16:55:20.494Z",
+    "level": "info",
+    "message": "Uploading to ImageKit:",
+    "details": {
+      "fileName": "Company Brains_portrait_image_1778345720494.webp",
+      "folder": "/Image-Gin/2026-05",
+      "tags": "",
+      "endpoint": "https://upload.imagekit.io/api/v1/files/upload",
+      "contentLength": 1180591
+    }
+  },
+  {
+    "timestamp": "2026-05-09T16:55:20.868Z",
+    "level": "info",
+    "message": "ImageKit upload successful:",
+    "details": "https://ik.imagekit.io/xvpgfijuw/Image-Gin/2026-05/Company_Brains_portrait_image_1778345720494_wKexPbfI_5.webp"
+  },
+  {
+    "timestamp": "2026-05-09T16:55:20.872Z",
+    "level": "info",
+    "message": "Successfully converted portrait_image: https://ik.imagekit.io/xvpgfijuw/Image-Gin/2026-05/Company_Brains_portrait_image_1778345720494_wKexPbfI_5.webp"
+  },
+  {
+    "timestamp": "2026-05-09T16:55:20.873Z",
+    "level": "info",
+    "message": "Uploading to ImageKit:",
+    "details": {
+      "fileName": "Company Brains_square_image_1778345720873.webp",
+      "folder": "/Image-Gin/2026-05",
+      "tags": "",
+      "endpoint": "https://upload.imagekit.io/api/v1/files/upload",
+      "contentLength": 629816
+    }
+  },
+  {
+    "timestamp": "2026-05-09T16:55:21.190Z",
+    "level": "info",
+    "message": "ImageKit upload successful:",
+    "details": "https://ik.imagekit.io/xvpgfijuw/Image-Gin/2026-05/Company_Brains_square_image_1778345720873_kJ9jL1fWr.webp"
+  },
+  {
+    "timestamp": "2026-05-09T16:55:21.195Z",
+    "level": "info",
+    "message": "Successfully converted square_image: https://ik.imagekit.io/xvpgfijuw/Image-Gin/2026-05/Company_Brains_square_image_1778345720873_kJ9jL1fWr.webp"
+  },
+  {
+    "timestamp": "2026-05-09T16:55:48.734Z",
+    "level": "info",
+    "message": "Found image properties:",
+    "details": [
+      {
+        "key": "banner_image",
+        "value": "https://ik.imagekit.io/xvpgfijuw/Image-Gin/2026-05/Company_Brains_banner_image_1778345719822_Q9xr7BjlR.webp",
+        "isLocalFile": false
+      },
+      {
+        "key": "portrait_image",
+        "value": "https://ik.imagekit.io/xvpgfijuw/Image-Gin/2026-05/Company_Brains_portrait_image_1778345720494_wKexPbfI_5.webp",
+        "isLocalFile": false
+      },
+      {
+        "key": "square_image",
+        "value": "https://ik.imagekit.io/xvpgfijuw/Image-Gin/2026-05/Company_Brains_square_image_1778345720873_kJ9jL1fWr.webp",
+        "isLocalFile": false
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-05-09T16:55:48.734Z",
+    "level": "info",
+    "message": "Found markdown images:",
+    "details": [
+      {
+        "path": "Visuals/ImageGin/ideogram-image_2048x1536_1778345650993.png",
+        "match": "![[Visuals/ImageGin/ideogram-image_2048x1536_1778345650993.png]]"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-05-09T16:55:51.125Z",
+    "level": "info",
+    "message": "Uploading to ImageKit:",
+    "details": {
+      "fileName": "Company Brains_content_1778345751124.webp",
+      "folder": "/Image-Gin/2026-05",
+      "tags": "Company Brains,markdown",
+      "endpoint": "https://upload.imagekit.io/api/v1/files/upload",
+      "contentLength": 523957
+    }
+  },
+  {
+    "timestamp": "2026-05-09T16:55:51.934Z",
+    "level": "info",
+    "message": "ImageKit upload successful:",
+    "details": "https://ik.imagekit.io/xvpgfijuw/Image-Gin/2026-05/Company_Brains_content_1778345751124_a4NghZD0E.webp"
+  },
+  {
+    "timestamp": "2026-05-09T16:55:51.935Z",
+    "level": "info",
+    "message": "Successfully converted markdown image: https://ik.imagekit.io/xvpgfijuw/Image-Gin/2026-05/Company_Brains_content_1778345751124_a4NghZD0E.webp"
+  },
+  {
+    "timestamp": "2026-05-10T05:54:39.616Z",
+    "level": "info",
+    "message": "Uploading to ImageKit:",
+    "details": {
+      "fileName": "ogimage_Context-Vigilance_1024x1024.webp",
+      "folder": "/Image-Gin/2026-05",
+      "endpoint": "https://upload.imagekit.io/api/v1/files/upload",
+      "contentLength": 977777
+    }
+  },
+  {
+    "timestamp": "2026-05-10T05:54:40.404Z",
+    "level": "info",
+    "message": "ImageKit upload successful:",
+    "details": "https://ik.imagekit.io/xvpgfijuw/Image-Gin/2026-05/ogimage_Context-Vigilance_1024x1024_ZaTvWITcE.webp"
+  },
+  {
+    "timestamp": "2026-05-13T02:25:29.475Z",
+    "level": "info",
+    "message": "Uploading to ImageKit:",
+    "details": {
+      "fileName": "Screenshot 2026-05-12 at 9.25.19 PM.webp",
+      "folder": "/Image-Gin/2026-05",
+      "endpoint": "https://upload.imagekit.io/api/v1/files/upload",
+      "contentLength": 207026
+    }
+  },
+  {
+    "timestamp": "2026-05-13T02:25:30.110Z",
+    "level": "info",
+    "message": "ImageKit upload successful:",
+    "details": "https://ik.imagekit.io/xvpgfijuw/Image-Gin/2026-05/Screenshot_2026-05-12_at_9.25.19_PM_VJpOsr-3K.webp"
+  },
+  {
+    "timestamp": "2026-05-18T02:54:37.311Z",
+    "level": "info",
+    "message": "Uploading to ImageKit:",
+    "details": {
+      "fileName": "2026-05-04_LM-Studio-Release-Notes_5.23.30 PM.webp",
+      "folder": "/Image-Gin/2026-05",
+      "endpoint": "https://upload.imagekit.io/api/v1/files/upload",
+      "contentLength": 661373
+    }
+  },
+  {
+    "timestamp": "2026-05-18T02:54:38.131Z",
+    "level": "info",
+    "message": "ImageKit upload successful:",
+    "details": "https://ik.imagekit.io/xvpgfijuw/Image-Gin/2026-05/2026-05-04_LM-Studio-Release-Notes_5.23.30_PM_nRMBwC-0F.webp"
+  },
+  {
+    "timestamp": "2026-05-18T03:13:00.118Z",
+    "level": "info",
+    "message": "Uploading to ImageKit:",
+    "details": {
+      "fileName": "2026-05-09_Perplexed-Streaming-Perplexity-Deep-Research_ 6.17.34 PM.webp",
+      "folder": "/Image-Gin/2026-05",
+      "endpoint": "https://upload.imagekit.io/api/v1/files/upload",
+      "contentLength": 1636403
+    }
+  },
+  {
+    "timestamp": "2026-05-18T03:13:01.162Z",
+    "level": "info",
+    "message": "ImageKit upload successful:",
+    "details": "https://ik.imagekit.io/xvpgfijuw/Image-Gin/2026-05/2026-05-09_Perplexed-Streaming-Perplexity-Deep-Research__6.17.34_PM_VrZbicaO6d.webp"
   }
 ]
