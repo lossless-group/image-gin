@@ -1,4 +1,9 @@
 packages: []
 
+# pnpm 10 (CI, release.yml)
 onlyBuiltDependencies:
   - esbuild
+
+# pnpm 11+ (local)
+allowBuilds:
+  esbuild: true
