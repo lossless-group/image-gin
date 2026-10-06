@@ -150,6 +150,19 @@ We rebuilt the style with Recraft V4 Styles. All 6 banners and 4 of the portrait
 | Created | 2026-10-06, 5 credits |
 | Source images | `~/assets/Recraft-Generated/**/*.jpg` (keep these; they are the recipe) |
 
+### Update: the original style was never gone
+
+Recraft's web app showed "No styles", but the app doesn't list styles created through the API. `GET /v1/styles` returned two:
+
+| Style ID | Created | Model |
+|---|---|---|
+| `73a249b2-879e-4240-9973-c6fb1715a882` | 2025-04-15 02:24:01 UTC | **V3** (`digital_illustration`), the **original** house style |
+| `8097b0bb-50a7-4f6a-ae32-248decdf6640` | 2026-10-06 | V4 Styles, the rebuild above |
+
+The original's creation time matches, to the second, the example in the plugin's old `DEFAULT_IMAGE_STYLES_JSON`. A test banner with model `recraftv3` + this `style_id` reproduced the 2025 look at full 2048×1024. The plugin had lost `useCustomStyle`, so runs fell back to the generic `graphic_intensity` preset.
+
+**Use the original:** Model **V3**, Custom style ID `73a249b2-879e-4240-9973-c6fb1715a882`. That's full 2K output at $0.04 an image. The V4 Styles rebuild is the forward path when V3 is retired.
+
 **Settings that reproduce the house look:** Model **V4 Styles**, Custom style ID as above, Brand colors empty (the style carries the palette), Share one seed across sizes **on**.
 
 ## Follow-on: provider recipes in the vault (`zz-cf-lib/`)
