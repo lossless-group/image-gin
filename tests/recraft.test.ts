@@ -10,6 +10,7 @@ import assert from 'node:assert/strict';
 import type { Vault } from 'obsidian';
 import {
     RecraftImageService,
+    cleanReferenceLine,
     parseHexColors,
     toRecraftSize,
 } from '../src/services/recraftImageService';
@@ -66,10 +67,13 @@ function generationBody(): Record<string, unknown> {
     return JSON.parse(String(req.body)) as Record<string, unknown>;
 }
 
-function makeVault(): { vault: Vault; written: Map<string, ArrayBuffer> } {
+function makeVault(files: Record<string, ArrayBuffer> = {}): { vault: Vault; written: Map<string, ArrayBuffer> } {
     const written = new Map<string, ArrayBuffer>();
     const vault = {
-        adapter: { exists: () => Promise.resolve(true) },
+        adapter: {
+            exists: (p: string) => Promise.resolve(Object.keys(files).length === 0 || p in files),
+            readBinary: (p: string) => Promise.resolve(files[p]!),
+        },
         createFolder: () => Promise.resolve(),
         createBinary: (p: string, data: ArrayBuffer) => {
             written.set(p, data);
@@ -383,5 +387,51 @@ describe('palette and seed consistency', () => {
         serveHappy();
         await generate(makeSettings());
         assert.ok(!('random_seed' in generationBody()));
+    });
+});
+
+describe('style references from the vault', () => {
+    // Recraft accepts "URLs or data URLs" for style references, so vault
+    // images are sent inline and users never have to host them.
+    const PNG_DATA_URL = `data:image/png;base64,${Buffer.from(PNG_BYTES).toString('base64')}`;
+
+    test('cleanReferenceLine unwraps wikilink embeds and aliases', () => {
+        assert.equal(cleanReferenceLine('  ![[Visuals/a.png]] '), 'Visuals/a.png');
+        assert.equal(cleanReferenceLine('[[Visuals/a.png|alt]]'), 'Visuals/a.png');
+        assert.equal(cleanReferenceLine('https://x/a.png'), 'https://x/a.png');
+    });
+
+    test('vault paths become data URLs; URLs pass through', async () => {
+        const { vault } = makeVault({ 'Visuals/a.png': PNG_BYTES });
+        const svc = new RecraftImageService(makeSettings(), vault);
+        assert.deepEqual(
+            await svc.resolveReferenceImages(['![[Visuals/a.png]]', 'https://cdn/b.jpg']),
+            [PNG_DATA_URL, 'https://cdn/b.jpg'],
+        );
+    });
+
+    test('generation sends vault references inline', async () => {
+        serveHappy();
+        const { vault } = makeVault({ 'Visuals/a.png': PNG_BYTES });
+        const svc = new RecraftImageService(makeSettings({ recraftStyleReferenceUrls: 'Visuals/a.png' }), vault);
+        await svc.generateImage('p', 1024, 1024, svc.buildStyleParams());
+        assert.deepEqual(generationBody().style_reference_urls, [PNG_DATA_URL]);
+    });
+
+    test('createStyle sends vault references inline', async () => {
+        serve(() => json(200, { id: 'from-vault' }));
+        const { vault } = makeVault({ 'Visuals/a.png': PNG_BYTES });
+        const svc = new RecraftImageService(makeSettings(), vault);
+        assert.equal(await svc.createStyle(['Visuals/a.png']), 'from-vault');
+        assert.deepEqual((JSON.parse(String(requests[0]!.body)) as Record<string, unknown>).image_urls, [PNG_DATA_URL]);
+    });
+
+    test('missing file or unsupported type fails before any request', async () => {
+        serve(() => json(200, { id: 'x' }));
+        const { vault } = makeVault({ 'Visuals/a.png': PNG_BYTES });
+        const svc = new RecraftImageService(makeSettings(), vault);
+        await assert.rejects(svc.createStyle(['Visuals/missing.png']), /not found/);
+        await assert.rejects(svc.createStyle(['Visuals/a.gif']), /PNG, JPG, or WEBP/);
+        assert.equal(requests.length, 0);
     });
 });

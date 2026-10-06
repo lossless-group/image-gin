@@ -521,11 +521,11 @@ export class ImageGinSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName('Style reference URLs')
-            .setDesc('V4+ only. One image URL per line (1–10). Each request creates a style from these (+$0.005).')
+            .setDesc('V4+ only. One per line (1–10): an image URL, or the path of an image in your vault. Vault images are sent inline, so nothing needs hosting. Generating with these creates a style each time (+$0.005); use the button below to create it once instead.')
             .addTextArea(text => {
                 text.inputEl.rows = 3;
                 text
-                    .setPlaceholder('https://…/reference-1.png')
+                    .setPlaceholder('Visuals/reference-1.png')
                     .setValue(this.plugin.settings.recraftStyleReferenceUrls)
                     .onChange(async (value) => {
                         this.plugin.settings.recraftStyleReferenceUrls = value;

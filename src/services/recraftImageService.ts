@@ -124,6 +124,29 @@ export function newRecraftSeed(): number {
     return Math.floor(Math.random() * 2_147_483_647);
 }
 
+const REFERENCE_MIME: Record<string, string> = {
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    webp: 'image/webp',
+};
+const MAX_REFERENCE_BYTES = 10 * 1024 * 1024;     // per file
+const MAX_REFERENCE_TOTAL = 64 * 1024 * 1024;     // across all references
+
+/**
+ * Normalize one reference line: strips `![[…]]` / `[[…]]` wikilink
+ * wrappers and any `|alias` so a pasted embed works as a vault path.
+ */
+export function cleanReferenceLine(line: string): string {
+    const t = line.trim();
+    const wiki = /^!?\[\[([^\]|]+)(?:\|[^\]]*)?\]\]$/.exec(t);
+    return wiki ? wiki[1]!.trim() : t;
+}
+
+function isRemoteReference(ref: string): boolean {
+    return /^(https?:|data:)/i.test(ref);
+}
+
 function extensionFor(contentType: string, bytes: ArrayBuffer): GeneratedImage['extension'] {
     const ct = contentType.toLowerCase();
     if (ct.includes('svg')) return 'svg';
@@ -206,6 +229,44 @@ export class RecraftImageService {
         };
     }
 
+    /**
+     * Turn reference lines into what Recraft accepts: http(s) and data URLs
+     * pass through; anything else is read from the vault and sent inline as
+     * a data URL (Recraft accepts "URLs or data URLs"). This is what lets a
+     * user build a style from images already in their vault without hosting
+     * them anywhere. Limits per the docs: PNG/JPG/WEBP, <10 MB each, 64 MB total.
+     */
+    async resolveReferenceImages(refs: string[]): Promise<string[]> {
+        const out: string[] = [];
+        let total = 0;
+        for (const raw of refs) {
+            const ref = cleanReferenceLine(raw);
+            if (!ref) continue;
+            if (isRemoteReference(ref)) {
+                out.push(ref);
+                continue;
+            }
+            const ext = ref.split('.').pop()?.toLowerCase() ?? '';
+            const mime = REFERENCE_MIME[ext];
+            if (!mime) {
+                throw new Error(`Style reference "${ref}" must be a PNG, JPG, or WEBP image.`);
+            }
+            if (!await this.vault.adapter.exists(ref)) {
+                throw new Error(`Style reference "${ref}" was not found in the vault.`);
+            }
+            const bytes = await this.vault.adapter.readBinary(ref);
+            if (bytes.byteLength > MAX_REFERENCE_BYTES) {
+                throw new Error(`Style reference "${ref}" is over Recraft's 10 MB per-image limit.`);
+            }
+            total += bytes.byteLength;
+            if (total > MAX_REFERENCE_TOTAL) {
+                throw new Error("Style references exceed Recraft's 64 MB total limit.");
+            }
+            out.push(`data:${mime};base64,${Buffer.from(bytes).toString('base64')}`);
+        }
+        return out;
+    }
+
     async generateImage(
         prompt: string,
         width: number,
@@ -229,6 +290,12 @@ export class RecraftImageService {
             );
         }
         // image_format is ignored for vector output (always SVG), so omit it.
+        if ('style_reference_urls' in styleParams) {
+            styleParams = {
+                ...styleParams,
+                style_reference_urls: await this.resolveReferenceImages(styleParams.style_reference_urls),
+            };
+        }
         const formatParams: { image_format?: 'webp' | 'png' } = isVectorRecraftModel(model)
             ? {}
             : { image_format: this.settings.recraftImageFormat };
@@ -329,7 +396,7 @@ export class RecraftImageService {
                 'Authorization': `Bearer ${this.settings.recraftApiKey}`,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ model, image_urls: imageUrls }),
+            body: JSON.stringify({ model, image_urls: await this.resolveReferenceImages(imageUrls) }),
             throw: false,
         });
 

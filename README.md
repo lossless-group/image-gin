@@ -102,6 +102,22 @@ Open the command palette (`Cmd/Ctrl+P`) and search for any of:
 - **Image Gin: Convert Local Images to Remote Images** — uploads local image references in the active note to ImageKit and rewrites the links.
 - **Image Gin: Batch Convert Directory Images to Remote** — same as above but scans every file in the active note's directory.
 
+### Keeping every image in one house style (Recraft)
+
+Want every banner, portrait, and square to look like it came from the same illustrator? Recraft solves this with **custom styles**. A style is built from 1–10 example images. It's stored in your Recraft account, and Image Gin refers to it by ID. You never upload anything on Recraft's website.
+
+1. **Pick your examples.** Choose 2–10 images that have the look you want: your own past illustrations, brand art, or images from any other generator. They can be **files already in your vault**. No hosting needed; Image Gin sends them to Recraft directly.
+2. In **Settings → Image Gin**, set **Model** to **V4 Styles** (or any V4.1 model).
+3. List the images in **Style reference URLs**, one per line. Use a vault path (`Visuals/old-banner.jpg`), a pasted embed (`![[old-banner.jpg]]`), or a public URL.
+4. Click **Create style** (costs $0.005, once). Image Gin fills in **Custom style ID** for you.
+5. Generate as usual. Every image now follows the style's drawing technique, colors, and texture.
+
+Good to know:
+
+- **A style only works with the model it was created for.** If you switch models, create the style again.
+- **Write the style ID down somewhere.** It lives in your plugin settings, and if you lose it, you rebuild it from the same example images. Keep those images too.
+- **No examples yet?** Leave the style empty, add your **Brand colors** (hex codes), and keep **Share one seed across sizes** on. That holds the palette steady across a set. Then save your favorite results as the examples for a style.
+
 ### Frontmatter contract
 
 Image Gin reads from and writes to a small set of keys in your note's frontmatter:
@@ -112,7 +128,7 @@ Image Gin reads from and writes to a small set of keys in your note's frontmatte
 | `image_negative_prompt` | Ideogram only | never | Appended to the brand-wide base negative prompt |
 | `image_style_type` | Ideogram only | never | Overrides the default `style_type` for this file |
 | `image_seed` | Ideogram only | never | Pins the seed for reproducibility |
-| `<sizeId>_image` (e.g. `banner_image`) | — | both | Path to the generated image for each selected size |
+| `<sizeId>_image` (e.g. `banner_image`) | — | both | Path to the generated image for each selected size. Custom sizes use their own key (e.g. `banner_image_taller`); "Convert local images to remote" picks those up too |
 
 ## 📝 License
 
