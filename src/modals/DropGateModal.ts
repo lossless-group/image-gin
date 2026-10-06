@@ -109,7 +109,7 @@ export class DropGateModal extends Modal {
             rememberForSession: this.rememberForSession,
         }));
 
-        activeWindow.setTimeout(() => insertBtn.focus(), 0);
+        window.setTimeout(() => insertBtn.focus(), 0);
     }
 
     onClose(): void {

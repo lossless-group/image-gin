@@ -209,7 +209,7 @@ export class MagnificModal extends Modal {
             loadingDiv.textContent = 'Failed to cache images. Displaying original images...';
 
             // Fallback to original display method
-            activeWindow.setTimeout(() => {
+            window.setTimeout(() => {
                 loadingDiv.remove();
                 this.displayImagesWithoutCache(images, imageGrid);
             }, 2000);
