@@ -31,7 +31,8 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
     private mdMasterToggle: ToggleComponent | null = null;
     private mdRowToggles: Map<string, ToggleComponent> = new Map();
 
-    // Common image properties to check
+    // Common image properties to check. Size presets add their own
+    // yamlKeys on top — see imagePropertyKeys().
     private readonly IMAGE_PROPERTIES = [
         'banner_image',
         'portrait_image', 
@@ -73,6 +74,19 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
         this.renderModalContent();
     }
 
+    /**
+     * The fixed list plus every frontmatter key a size preset writes to.
+     * Generation (Recraft and Ideogram) writes to `size.yamlKey`, so a
+     * user-added preset like `banner_image_taller` must be convertible too.
+     */
+    private imagePropertyKeys(): string[] {
+        const keys = new Set(this.IMAGE_PROPERTIES);
+        for (const size of this.plugin.settings.imageSizes) {
+            if (size.yamlKey) keys.add(size.yamlKey);
+        }
+        return [...keys];
+    }
+
     private async analyzeCurrentFile(): Promise<void> {
         if (!this.currentFile) return;
 
@@ -93,7 +107,7 @@ export class ConvertLocalImagesForCurrentFile extends Modal {
 
             // 1. Analyze frontmatter
             if (frontmatter) {
-                for (const property of this.IMAGE_PROPERTIES) {
+                for (const property of this.imagePropertyKeys()) {
                     const value = frontmatter[property];
                     if (value && typeof value === 'string') {
                         const isLocalFile = this.isLocalImagePath(value);
