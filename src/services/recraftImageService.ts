@@ -59,6 +59,15 @@ export function isLegacyRecraftModel(model: string): boolean {
         || model.startsWith('recraftv3_') || model.startsWith('recraftv2_');
 }
 
+export function isVectorRecraftModel(model: string): boolean {
+    return model.includes('vector');
+}
+
+/** Prompt length limit per model family (appendix#prompt-length). */
+export function recraftPromptLimit(model: string): number {
+    return isLegacyRecraftModel(model) ? 1_000 : 10_000;
+}
+
 export function isStylesOnlyRecraftModel(model: string): boolean {
     return model.startsWith('recraftv4_styles');
 }
@@ -170,12 +179,23 @@ export class RecraftImageService {
 
         const url = this.settings.recraftBaseUrl;
         const model = this.settings.recraftModelChoice;
+        const limit = recraftPromptLimit(model);
+        if (prompt.length > limit) {
+            throw new Error(
+                `Prompt is ${prompt.length.toLocaleString('en-US')} characters; ${model} allows at most ${limit.toLocaleString('en-US')}.`
+            );
+        }
+        // image_format is ignored for vector output (always SVG), so omit it.
+        const formatParams: { image_format?: 'webp' | 'png' } = isVectorRecraftModel(model)
+            ? {}
+            : { image_format: this.settings.recraftImageFormat };
         const requestData = {
             prompt,
             model,
             size: toRecraftSize(width, height),
             n: 1,
             response_format: 'url',
+            ...formatParams,
             ...styleParams,
         };
 
@@ -236,6 +256,49 @@ export class RecraftImageService {
             timestamp: Date.now(),
             styleId,
         };
+    }
+
+    /**
+     * Create a reusable style from 1–10 reference images for the configured
+     * model (endpoints#create-style). The returned id only works with that
+     * model. Every model accepts JSON image_urls except V4.1 Flash, which
+     * has no styles.
+     */
+    async createStyle(imageUrls: string[]): Promise<string> {
+        const model = this.settings.recraftModelChoice;
+        if (!this.settings.recraftApiKey) {
+            throw new Error('Recraft API key is not set. Please configure it in the plugin settings.');
+        }
+        if (imageUrls.length < 1 || imageUrls.length > 10) {
+            throw new Error(`Recraft create style needs 1–10 reference image URLs; got ${imageUrls.length}.`);
+        }
+        if (model.includes('flash')) {
+            throw new Error(`${model} does not support styles; pick another model to create one.`);
+        }
+
+        const url = this.settings.recraftBaseUrl.replace(/\/images\/generations\/?$/, '/styles');
+        const response = await requestUrl({
+            url,
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${this.settings.recraftApiKey}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ model, image_urls: imageUrls }),
+            throw: false,
+        });
+
+        if (response.status < 200 || response.status >= 300) {
+            const bodyText = typeof response.text === 'string' ? response.text : '';
+            logger.error('Recraft create style failed:', { status: response.status, body: bodyText.slice(0, 500) });
+            throw new Error(`Recraft create style failed (HTTP ${response.status}): ${bodyText.slice(0, 300)}`);
+        }
+        const json: unknown = response.json;
+        if (!isRecord(json) || typeof json.id !== 'string') {
+            throw new Error(`Recraft create style: no style id in response — ${JSON.stringify(json).slice(0, 300)}`);
+        }
+        logger.info('Recraft created style:', { id: json.id, model, credits: json.credits });
+        return json.id;
     }
 
     /**

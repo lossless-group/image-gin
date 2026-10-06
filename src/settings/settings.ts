@@ -3,7 +3,7 @@ import type { ImageSize } from '../types';
 import type { App} from 'obsidian';
 import { PluginSettingTab, Setting, Notice } from 'obsidian';
 import type ImageGinPlugin from '../../main';
-import { RECRAFT_MODELS } from '../services/recraftImageService';
+import { RECRAFT_MODELS, RecraftImageService } from '../services/recraftImageService';
 import type { RecraftStyleMatch } from '../services/recraftImageService';
 
 export type BaseStyle = 'realistic_image' | 'digital_illustration' | 'vector_illustration' | 'icon';
@@ -179,6 +179,8 @@ export interface ImageGinSettings {
     recraftStyleReferenceUrls: string;
     // '' leaves the style's stored match value in effect.
     recraftStyleMatch: '' | RecraftStyleMatch;
+    // Raster output format. Ignored (and not sent) for vector models.
+    recraftImageFormat: 'webp' | 'png';
     imagePromptKey: string;
     imageSizes: ImageSize[];
     defaultBannerSize: string;
@@ -224,6 +226,7 @@ export const DEFAULT_SETTINGS: ImageGinSettings = {
     recraftModelChoice: 'recraftv4_1',
     recraftStyleReferenceUrls: '',
     recraftStyleMatch: '',
+    recraftImageFormat: 'webp',
     imagePromptKey: 'image_prompt',
     imageSizes: [...DEFAULT_IMAGE_SIZES],
     defaultBannerSize: 'banner',
@@ -522,6 +525,33 @@ export class ImageGinSettingTab extends PluginSettingTab {
             });
 
         new Setting(containerEl)
+            .setName('Create style from references')
+            .setDesc('Creates a reusable style from the reference URLs above for the selected model, then sets it as the custom style ID. Not available for flash models.')
+            .addButton(button => button
+                .setButtonText('Create style')
+                .onClick(async () => {
+                    const urls = this.plugin.settings.recraftStyleReferenceUrls
+                        .split('\n')
+                        .map(s => s.trim())
+                        .filter(Boolean);
+                    button.setDisabled(true);
+                    try {
+                        const service = new RecraftImageService(this.plugin.settings, this.app.vault);
+                        const id = await service.createStyle(urls);
+                        const styleSettings = this.plugin.settings.style;
+                        styleSettings.customStyleId = id;
+                        styleSettings.useCustomStyle = true;
+                        await this.plugin.saveSettings();
+                        this.display();
+                        new Notice(`Created Recraft style ${id}`);
+                    } catch (error) {
+                        logger.error('Failed to create Recraft style:', error);
+                        new Notice(`Failed to create style: ${error instanceof Error ? error.message : String(error)}`);
+                        button.setDisabled(false);
+                    }
+                }));
+
+        new Setting(containerEl)
             .setName('Style match')
             .setDesc('V4+ only. How closely to follow the style.')
             .addDropdown(dropdown => dropdown
@@ -532,6 +562,18 @@ export class ImageGinSettingTab extends PluginSettingTab {
                 .onChange(async (value) => {
                     this.plugin.settings.recraftStyleMatch =
                         value === 'flexible' || value === 'precise' ? value : '';
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Image format')
+            .setDesc('Raster output format. Vector models ignore this setting.')
+            .addDropdown(dropdown => dropdown
+                .addOption('webp', 'WebP')
+                .addOption('png', 'PNG')
+                .setValue(this.plugin.settings.recraftImageFormat)
+                .onChange(async (value) => {
+                    this.plugin.settings.recraftImageFormat = value === 'png' ? 'png' : 'webp';
                     await this.plugin.saveSettings();
                 }));
 

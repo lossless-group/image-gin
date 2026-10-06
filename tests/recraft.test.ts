@@ -312,10 +312,19 @@ describe('[docs requirement] createStyle', () => {
         await assert.rejects(svc.createStyle(['https://r/1.gif']), /422.*unsupported image format/s);
     });
 
-    test('refuses legacy V2/V3 models (JSON create-style is a V4 feature)', async () => {
+    // endpoints#create-style: `image_urls` is accepted on "All models";
+    // `model` is "All models except V4.1 Flash".
+    test('refuses V4.1 Flash before any request', async () => {
         serve(() => json(200, { id: 'x' }));
-        const svc = new RecraftImageService(makeSettings({ recraftModelChoice: 'recraftv3' }), makeVault().vault) as unknown as WithCreateStyle;
-        await assert.rejects(svc.createStyle(['https://r/1.png']), /V4|legacy|recraftv3/i);
+        const svc = new RecraftImageService(makeSettings({ recraftModelChoice: 'recraftv4_1_flash' }), makeVault().vault) as unknown as WithCreateStyle;
+        await assert.rejects(svc.createStyle(['https://r/1.png']), /flash/i);
         assert.equal(requests.length, 0);
+    });
+
+    test('allows legacy V3 and sends its model id', async () => {
+        serve(() => json(200, { id: 'v3-style' }));
+        const svc = new RecraftImageService(makeSettings({ recraftModelChoice: 'recraftv3' }), makeVault().vault) as unknown as WithCreateStyle;
+        assert.equal(await svc.createStyle(['https://r/1.png']), 'v3-style');
+        assert.equal((JSON.parse(String(requests[0]!.body)) as Record<string, unknown>).model, 'recraftv3');
     });
 });
