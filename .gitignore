@@ -30,3 +30,6 @@ styles.css
 
 # Runtime telemetry — captured at plugin load in the dev vault. Not source-of-truth.
 log.json
+
+# Test bundle output (scripts/run-tests.mjs)
+.test-build/

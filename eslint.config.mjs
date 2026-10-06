@@ -18,6 +18,8 @@ export default [
             'version-bump.mjs',
             'setup-plugin.mjs',
             'scripts/**',
+            'tests/**',
+            '.test-build/**',
             'eslint.config.mjs',
         ],
     },
