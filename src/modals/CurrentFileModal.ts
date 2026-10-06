@@ -3,8 +3,7 @@ import type { App, TFile } from 'obsidian';
 import { Modal, Setting, Notice } from 'obsidian';
 import type { ToggleComponent } from 'obsidian';
 import type ImageGinPlugin from '../../main';
-import { RecraftImageService } from '../services/recraftImageService';
-import type { RecraftStyleParams } from '../services/recraftImageService';
+import { RecraftImageService, isLegacyRecraftModel } from '../services/recraftImageService';
 import { STYLE_OPTIONS } from '../settings/settings';
 import type { ImageSize } from '../types';
 import { asString } from '../utils/coerce';
@@ -213,7 +212,21 @@ export class CurrentFileModal extends Modal {
         const content = section.createDiv('image-gin-section-content');
         
         const styleSettings = this.plugin.settings.style;
-        
+        const model = this.plugin.settings.recraftModelChoice;
+        content.createEl('p', { text: `Model: ${model}`, cls: 'style-display' });
+
+        if (!isLegacyRecraftModel(model)) {
+            const refCount = this.plugin.settings.recraftStyleReferenceUrls
+                .split('\n').filter(s => s.trim()).length;
+            const text = styleSettings.useCustomStyle && styleSettings.customStyleId
+                ? `Custom style: ${styleSettings.customStyleId}`
+                : refCount > 0
+                    ? `Style from ${refCount} reference image${refCount === 1 ? '' : 's'}`
+                    : 'No style (model default)';
+            content.createEl('p', { text, cls: 'style-display' });
+            return;
+        }
+
         if (styleSettings.useCustomStyle) {
             content.createEl('p', { 
                 text: `Using Custom Style: ${styleSettings.customStyleId || 'Not specified'}`,
@@ -330,8 +343,10 @@ export class CurrentFileModal extends Modal {
             const sizesToGenerate = availableSizes.filter(size => this.selectedSizes.has(size.id));
             logger.info('Sizes to generate:', sizesToGenerate.map(s => s.id));
 
-            // Prepare style parameters
-            const styleParams = this.getStyleParams();
+            // Resolve style parameters for the configured model. Throws on
+            // an unusable config (e.g. V4 Styles with no style) before any
+            // credits are spent.
+            const styleParams = imageService.buildStyleParams();
 
             // Generate images for each selected size
             for (const size of sizesToGenerate) {
@@ -346,12 +361,7 @@ export class CurrentFileModal extends Modal {
                     );
 
                     // Save the image
-                    const imagePath = imageService.getImagePath(
-                        'generated-image',
-                        size.width,
-                        size.height,
-                        generatedImage.timestamp
-                    );
+                    const imagePath = imageService.getImagePath(generatedImage, 'generated-image');
 
                     await imageService.saveImage(generatedImage, imagePath);
 
@@ -375,35 +385,6 @@ export class CurrentFileModal extends Modal {
             this.isGenerating = false;
             this.hideProgress();
         }
-    }
-
-    private getStyleParams(): RecraftStyleParams {
-        const styleSettings = this.plugin.settings.style;
-
-        // Try to use custom style from imageStylesJSON first
-        try {
-            const customStyles: unknown = JSON.parse(this.plugin.settings.imageStylesJSON);
-            if (Array.isArray(customStyles) && customStyles.length > 0) {
-                const firstStyle: unknown = customStyles[0];
-                if (firstStyle && typeof firstStyle === 'object' && 'id' in firstStyle && typeof firstStyle.id === 'string') {
-                    logger.info('Using custom style ID:', firstStyle.id);
-                    return { style_id: firstStyle.id };
-                }
-            }
-        } catch (error) {
-            logger.warn('Failed to parse imageStylesJSON, falling back to preset styles:', error);
-        }
-
-        // Fallback to preset styles
-        if (styleSettings.useCustomStyle && styleSettings.customStyleId) {
-            return { style_id: styleSettings.customStyleId };
-        }
-
-        const params: RecraftStyleParams = { style: styleSettings.presetStyle.base };
-        if (styleSettings.presetStyle.substyle) {
-            params.substyle = styleSettings.presetStyle.substyle;
-        }
-        return params;
     }
 
     private async updateFrontmatter(): Promise<void> {

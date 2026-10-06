@@ -3,6 +3,8 @@ import type { ImageSize } from '../types';
 import type { App} from 'obsidian';
 import { PluginSettingTab, Setting, Notice } from 'obsidian';
 import type ImageGinPlugin from '../../main';
+import { RECRAFT_MODELS } from '../services/recraftImageService';
+import type { RecraftStyleMatch } from '../services/recraftImageService';
 
 export type BaseStyle = 'realistic_image' | 'digital_illustration' | 'vector_illustration' | 'icon';
 
@@ -172,6 +174,11 @@ export interface ImageGinSettings {
     recraftApiKey: string;
     recraftBaseUrl: string;
     recraftModelChoice: string;
+    // V4+ styles: newline-separated reference image URLs (1–10). Ignored
+    // when a custom style ID is set, and by V2/V3 and V4.1 Flash.
+    recraftStyleReferenceUrls: string;
+    // '' leaves the style's stored match value in effect.
+    recraftStyleMatch: '' | RecraftStyleMatch;
     imagePromptKey: string;
     imageSizes: ImageSize[];
     defaultBannerSize: string;
@@ -214,7 +221,9 @@ export const DEFAULT_IMAGE_STYLES_JSON = JSON.stringify([
 export const DEFAULT_SETTINGS: ImageGinSettings = {
     recraftApiKey: '',
     recraftBaseUrl: 'https://external.api.recraft.ai/v1/images/generations',
-    recraftModelChoice: 'recraftv3',
+    recraftModelChoice: 'recraftv4_1',
+    recraftStyleReferenceUrls: '',
+    recraftStyleMatch: '',
     imagePromptKey: 'image_prompt',
     imageSizes: [...DEFAULT_IMAGE_SIZES],
     defaultBannerSize: 'banner',
@@ -473,13 +482,56 @@ export class ImageGinSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Model')
             .setDesc('Select the Recraft model to use for image generation')
-            .addDropdown(dropdown => dropdown
-                .addOption('recraftv3', 'Recraft v3')
-                .addOption('recraftv2', 'Recraft v2')
-                .addOption('recraftv1', 'Recraft v1')
-                .setValue(this.plugin.settings.recraftModelChoice)
+            .addDropdown(dropdown => {
+                for (const m of RECRAFT_MODELS) dropdown.addOption(m.id, m.label);
+                dropdown
+                    .setValue(this.plugin.settings.recraftModelChoice)
+                    .onChange(async (value) => {
+                        this.plugin.settings.recraftModelChoice = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
+
+        // Style: V4+ models take a custom style ID or reference images;
+        // V2/V3 also accept a custom style ID (created for that model).
+        new Setting(containerEl)
+            .setName('Custom style ID')
+            .setDesc('A Recraft style ID, which only works with the model it was created for. Leave empty to use reference URLs or the curated preset.')
+            .addText(text => text
+                .setPlaceholder('Paste a style ID')
+                .setValue(this.plugin.settings.style.customStyleId ?? '')
                 .onChange(async (value) => {
-                    this.plugin.settings.recraftModelChoice = value;
+                    const id = value.trim();
+                    this.plugin.settings.style.customStyleId = id || null;
+                    this.plugin.settings.style.useCustomStyle = id.length > 0;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Style reference URLs')
+            .setDesc('V4+ only. One image URL per line (1–10). Each request creates a style from these (+$0.005).')
+            .addTextArea(text => {
+                text.inputEl.rows = 3;
+                text
+                    .setPlaceholder('https://…/reference-1.png')
+                    .setValue(this.plugin.settings.recraftStyleReferenceUrls)
+                    .onChange(async (value) => {
+                        this.plugin.settings.recraftStyleReferenceUrls = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
+
+        new Setting(containerEl)
+            .setName('Style match')
+            .setDesc('V4+ only. How closely to follow the style.')
+            .addDropdown(dropdown => dropdown
+                .addOption('', 'Style default')
+                .addOption('flexible', 'Flexible')
+                .addOption('precise', 'Precise')
+                .setValue(this.plugin.settings.recraftStyleMatch)
+                .onChange(async (value) => {
+                    this.plugin.settings.recraftStyleMatch =
+                        value === 'flexible' || value === 'precise' ? value : '';
                     await this.plugin.saveSettings();
                 }));
 

@@ -7,23 +7,101 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 export interface GeneratedImage {
-    base64: string;
+    buffer: ArrayBuffer;
+    extension: 'webp' | 'png' | 'svg' | 'jpg';
     width: number;
     height: number;
     prompt: string;
     timestamp: number;
+    // Returned by V4 models when style references were attached — reuse it
+    // as a style_id to skip the per-request style-creation charge.
+    styleId: string | null;
 }
 
-// Two shapes the Recraft API accepts for style parameters: either a custom
-// style ID, or a built-in style (with optional substyle). Built as a union
-// so callers can produce one or the other without conditional spread tricks.
+// Style parameters differ by model family:
+//   - V2/V3 take curated `style` (+ optional `substyle`) or a custom `style_id`
+//   - V4/V4.1 reject curated styles; they take `style_id` or
+//     `style_reference_urls`, optionally with `style_match`
+//   - V4.1 Flash takes no style at all
 export type RecraftStyleParams =
-    | { style_id: string }
+    | Record<string, never>
+    | { style_id: string; style_match?: RecraftStyleMatch }
+    | { style_reference_urls: string[]; style_match?: RecraftStyleMatch }
     | { style: string; substyle?: string };
 
-interface RecraftGenerationResponse {
-    data?: Array<{ url?: string }>;
-    created?: number;
+export type RecraftStyleMatch = 'flexible' | 'precise';
+
+export interface RecraftModelOption {
+    id: string;
+    label: string;
+}
+
+// Source: https://www.recraft.ai/docs/api-reference/models/overview (2026-10).
+// Order is the order shown in the settings dropdown.
+export const RECRAFT_MODELS: RecraftModelOption[] = [
+    { id: 'recraftv4_1', label: 'V4.1 — default, 1K ($0.035)' },
+    { id: 'recraftv4_1_pro', label: 'V4.1 Pro — 2K ($0.21)' },
+    { id: 'recraftv4_1_utility', label: 'V4.1 Utility — flat, predictable, 1K' },
+    { id: 'recraftv4_1_utility_pro', label: 'V4.1 Utility Pro — 2K' },
+    { id: 'recraftv4_1_flash', label: 'V4.1 Flash — fast, no styles ($0.007)' },
+    { id: 'recraftv4_1_vector', label: 'V4.1 Vector — SVG' },
+    { id: 'recraftv4_1_pro_vector', label: 'V4.1 Pro Vector — SVG' },
+    { id: 'recraftv4_styles', label: 'V4 Styles — requires a style, 1K' },
+    { id: 'recraftv4_styles_pro', label: 'V4 Styles Pro — requires a style, 2K' },
+    { id: 'recraftv4_styles_vector', label: 'V4 Styles Vector — requires a style, SVG' },
+    { id: 'recraftv3', label: 'V3 (legacy) — curated styles + substyles' },
+    { id: 'recraftv2', label: 'V2 (legacy)' },
+];
+
+/** V2/V3 are the only models that accept curated `style`/`substyle`. */
+export function isLegacyRecraftModel(model: string): boolean {
+    return model === 'recraftv3' || model === 'recraftv2'
+        || model.startsWith('recraftv3_') || model.startsWith('recraftv2_');
+}
+
+export function isStylesOnlyRecraftModel(model: string): boolean {
+    return model.startsWith('recraftv4_styles');
+}
+
+// The 14 aspect ratios every Recraft model accepts as `size: "w:h"`.
+// Sending a ratio instead of exact pixels keeps one set of size presets
+// valid across 1K, 2K (Pro), V3, and vector models, each of which has
+// its own exact-pixel table. See /docs/api-reference/appendix#image-sizes.
+const RECRAFT_RATIOS: Array<[number, number]> = [
+    [1, 1], [2, 1], [1, 2], [3, 2], [2, 3], [4, 3], [3, 4],
+    [5, 4], [4, 5], [6, 10], [14, 10], [10, 14], [16, 9], [9, 16],
+];
+
+/** Snap a preset's pixel dimensions to the nearest Recraft aspect ratio. */
+export function toRecraftSize(width: number, height: number): string {
+    const target = width / height;
+    let best: [number, number] = [1, 1];
+    let bestDiff = Infinity;
+    for (const [w, h] of RECRAFT_RATIOS) {
+        const diff = Math.abs(Math.log(target / (w / h)));
+        if (diff < bestDiff) {
+            bestDiff = diff;
+            best = [w, h];
+        }
+    }
+    if (bestDiff > 0.03) {
+        logger.warn(`Recraft: ${width}x${height} has no matching ratio; using ${best[0]}:${best[1]}`);
+    }
+    return `${best[0]}:${best[1]}`;
+}
+
+function extensionFor(contentType: string, bytes: ArrayBuffer): GeneratedImage['extension'] {
+    const ct = contentType.toLowerCase();
+    if (ct.includes('svg')) return 'svg';
+    if (ct.includes('webp')) return 'webp';
+    if (ct.includes('png')) return 'png';
+    if (ct.includes('jpeg') || ct.includes('jpg')) return 'jpg';
+    // Fall back to magic bytes when the CDN omits or generalizes the type.
+    const head = new Uint8Array(bytes.slice(0, 12));
+    if (head[0] === 0x89 && head[1] === 0x50) return 'png';
+    if (head[0] === 0x52 && head[1] === 0x49 && head[8] === 0x57 && head[9] === 0x45) return 'webp';
+    if (head[0] === 0xff && head[1] === 0xd8) return 'jpg';
+    return 'webp';
 }
 
 export class RecraftImageService {
@@ -35,154 +113,129 @@ export class RecraftImageService {
         this.vault = vault;
     }
 
+    /**
+     * Resolve style parameters for the configured model. Throws when the
+     * configuration can't produce a valid request (e.g. a V4 Styles model
+     * with no style), so the user hears about it before credits are spent.
+     */
+    buildStyleParams(): RecraftStyleParams {
+        const model = this.settings.recraftModelChoice;
+        const style = this.settings.style;
+        const match = this.settings.recraftStyleMatch;
+        const withMatch = <T extends object>(p: T): T & { style_match?: RecraftStyleMatch } =>
+            match ? { ...p, style_match: match } : p;
+
+        if (isLegacyRecraftModel(model)) {
+            if (style.useCustomStyle && style.customStyleId) {
+                return { style_id: style.customStyleId };
+            }
+            const params: { style: string; substyle?: string } = { style: style.presetStyle.base };
+            if (style.presetStyle.substyle) params.substyle = style.presetStyle.substyle;
+            return params;
+        }
+
+        if (model.includes('flash')) return {};
+
+        if (style.useCustomStyle && style.customStyleId) {
+            return withMatch({ style_id: style.customStyleId });
+        }
+        const refs = this.settings.recraftStyleReferenceUrls
+            .split('\n')
+            .map(s => s.trim())
+            .filter(Boolean)
+            .slice(0, 10);
+        if (refs.length > 0) {
+            return withMatch({ style_reference_urls: refs });
+        }
+        if (isStylesOnlyRecraftModel(model)) {
+            throw new Error(
+                `${model} requires a style. Set a custom style ID or style reference URLs in settings.`
+            );
+        }
+        return {};
+    }
+
     async generateImage(
         prompt: string,
         width: number,
         height: number,
         styleParams: RecraftStyleParams
     ): Promise<GeneratedImage> {
-        try {
-            // Validate API key
-            if (!this.settings.recraftApiKey) {
-                throw new Error('Recraft API key is not set. Please configure it in the plugin settings.');
-            }
-
-            // Validate base URL
-            if (!this.settings.recraftBaseUrl) {
-                throw new Error('Recraft API base URL is not configured.');
-            }
-
-            // Log the request details (without exposing the API key)
-            logger.info('=== Recraft API Request ===');
-            logger.info('URL:', this.settings.recraftBaseUrl);
-            logger.info('Model:', this.settings.recraftModelChoice);
-            logger.info('Dimensions:', `${width}x${height}`);
-            logger.info('Style Params:', styleParams);
-
-            // Use the URL directly from settings (it already includes the full path)
-            const url = this.settings.recraftBaseUrl;
-
-            const requestData = {
-                prompt,
-                size: `${width}x${height}`, // Recraft API expects size as string like "2048x1024"
-                model: this.settings.recraftModelChoice,
-                n: 1, // Number of images to generate
-                response_format: 'url', // Using URL instead of b64_json
-                ...styleParams,
-            };
-
-            logger.info('Sending request to Recraft API:', {
-                url,
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${this.settings.recraftApiKey ? '[REDACTED]' : 'MISSING'}`,
-                    'Content-Type': 'application/json',
-                },
-                body: requestData,
-            });
-
-            logger.info('Sending request to:', url);
-            logger.info('Request headers:', {
-                'Authorization': 'Bearer ***',
-                'Content-Type': 'application/json'
-            });
-            logger.info('Request body:', JSON.stringify({
-                ...requestData,
-                prompt: requestData.prompt.length > 50 
-                    ? `${requestData.prompt.substring(0, 47)}...` 
-                    : requestData.prompt
-            }, null, 2));
-
-            const startTime = Date.now();
-            const response = await requestUrl({
-                url,
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${this.settings.recraftApiKey}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(requestData),
-            });
-
-            const responseTime = Date.now() - startTime;
-            logger.info(`Received API response in ${responseTime}ms`);
-            logger.info('Response status:', response.status);
-            
-            // Log response headers (redacting sensitive info)
-            const responseHeaders = { ...response.headers };
-            if (responseHeaders['authorization']) responseHeaders['authorization'] = '***';
-            logger.info('Response headers:', responseHeaders);
-
-            // Get response text for logging before parsing
-            const responseText = typeof response.text === 'string' ? response.text : '';
-            
-            // Check if the response is an error
-            if (response.status !== 200) {
-                logger.error('API Error Response:', {
-                    status: response.status,
-                    headers: responseHeaders,
-                    body: responseText.length > 500 ? responseText.substring(0, 500) + '...' : responseText
-                });
-
-                let errorDetails: unknown;
-                try {
-                    errorDetails = JSON.parse(responseText);
-                } catch {
-                    errorDetails = { raw: responseText };
-                }
-                
-                throw new Error(
-                    `API request failed with status ${response.status}\n` +
-                    `Details: ${JSON.stringify(errorDetails, null, 2)}`
-                );
-            }
-
-            // Parse successful response. Obsidian's requestUrl already parses
-            // .json into a value; isRecord narrows from unknown into something
-            // we can hand to the typed RecraftGenerationResponse view.
-            const json: unknown = response.json;
-            if (!isRecord(json)) {
-                logger.error('Recraft API response was not a JSON object:', json);
-                throw new Error('Failed to parse Recraft API response');
-            }
-            const data = json as RecraftGenerationResponse;
-            logger.info('API response data:', data);
-
-            // Handle the response based on the API's actual structure
-            const imageUrl = data.data?.[0]?.url;
-            if (!imageUrl) {
-                logger.error('No image URL in response. Full response:', data);
-                throw new Error('No image URL in response');
-            }
-
-            // Download the image from the URL
-            logger.info('Downloading image from:', imageUrl);
-            const imageResponse = await requestUrl({
-                url: imageUrl,
-                method: 'GET'
-            });
-
-            if (imageResponse.status !== 200) {
-                throw new Error(`Failed to download image: HTTP ${imageResponse.status}`);
-            }
-
-            // Convert the response to base64
-            const arrayBuffer = imageResponse.arrayBuffer;
-            const buffer = Buffer.from(arrayBuffer);
-            const base64Image = buffer.toString('base64');
-
-            // Return the generated image data
-            return {
-                base64: base64Image,
-                width,
-                height,
-                prompt,
-                timestamp: data.created || Date.now()
-            };
-        } catch (error) {
-            logger.error('Error generating image:', error);
-            throw error;
+        if (!this.settings.recraftApiKey) {
+            throw new Error('Recraft API key is not set. Please configure it in the plugin settings.');
         }
+        if (!this.settings.recraftBaseUrl) {
+            throw new Error('Recraft API base URL is not configured.');
+        }
+
+        const url = this.settings.recraftBaseUrl;
+        const model = this.settings.recraftModelChoice;
+        const requestData = {
+            prompt,
+            model,
+            size: toRecraftSize(width, height),
+            n: 1,
+            response_format: 'url',
+            ...styleParams,
+        };
+
+        logger.info('=== Recraft API Request ===');
+        logger.info('Request body:', {
+            ...requestData,
+            prompt: prompt.length > 80 ? `${prompt.slice(0, 77)}...` : prompt,
+        });
+
+        const startTime = Date.now();
+        const response = await requestUrl({
+            url,
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${this.settings.recraftApiKey}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestData),
+            throw: false,
+        });
+        logger.info(`Recraft responded HTTP ${response.status} in ${Date.now() - startTime}ms`);
+
+        if (response.status < 200 || response.status >= 300) {
+            const bodyText = typeof response.text === 'string' ? response.text : '';
+            logger.error('Recraft generate failed:', { status: response.status, body: bodyText.slice(0, 500) });
+            throw new Error(`Recraft generate failed (HTTP ${response.status}): ${bodyText.slice(0, 300)}`);
+        }
+
+        const json: unknown = response.json;
+        if (!isRecord(json)) {
+            throw new Error('Recraft generate: response was not a JSON object');
+        }
+        const data: unknown = json.data;
+        const first: unknown = Array.isArray(data) ? data[0] : undefined;
+        if (!isRecord(first) || typeof first.url !== 'string') {
+            throw new Error(`Recraft generate: no image URL — ${JSON.stringify(json).slice(0, 300)}`);
+        }
+        logger.info('Recraft credits charged:', json.credits);
+        const styleId = typeof json.style_id === 'string' ? json.style_id : null;
+        if (styleId) logger.info('Recraft returned style_id (reusable):', styleId);
+
+        const downloadStart = Date.now();
+        const imageResponse = await requestUrl({ url: first.url, method: 'GET', throw: false });
+        if (imageResponse.status !== 200) {
+            throw new Error(`Failed to download Recraft image: HTTP ${imageResponse.status}`);
+        }
+        const buffer = imageResponse.arrayBuffer;
+        const contentType = imageResponse.headers['content-type'] ?? '';
+        const extension = extensionFor(contentType, buffer);
+        logger.info(`Downloaded ${buffer.byteLength} bytes (${contentType || 'unknown type'}) in ${Date.now() - downloadStart}ms`);
+
+        return {
+            buffer,
+            extension,
+            width,
+            height,
+            prompt,
+            timestamp: Date.now(),
+            styleId,
+        };
     }
 
     /**
@@ -192,62 +245,30 @@ export class RecraftImageService {
      */
     async saveImage(image: GeneratedImage, filePath: string): Promise<TFile | null> {
         try {
-            // Convert base64 to binary
-            const binaryString = atob(image.base64);
-            const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-            }
-
-            // Check if this is an absolute path
             if (filePath.startsWith('/')) {
-                // Use Node.js fs operations for absolute paths
-                
-                logger.info('Saving to absolute path:', filePath);
-                
-                // Create directory if it doesn't exist
                 const folderPath = path.dirname(filePath);
-                logger.info('Creating directory if needed:', folderPath);
-                
                 if (!fs.existsSync(folderPath)) {
-                    logger.info('Directory does not exist, creating:', folderPath);
                     fs.mkdirSync(folderPath, { recursive: true });
-                } else {
-                    logger.info('Directory already exists:', folderPath);
                 }
-                
-                // Write file directly to absolute path (from system root)
-                logger.info('Writing file to:', filePath);
-                fs.writeFileSync(filePath, bytes);
-                logger.info('File saved successfully to:', filePath);
-                
-                // No TFile to return — file lives outside the vault.
+                fs.writeFileSync(filePath, new Uint8Array(image.buffer));
+                logger.info('Saved Recraft image to absolute path:', filePath);
                 return null;
-            } else {
-                // Use Obsidian vault methods for relative paths
-                const folderPath = filePath.split('/').slice(0, -1).join('/');
-                if (folderPath && !await this.vault.adapter.exists(folderPath)) {
-                    await this.vault.createFolder(folderPath);
-                }
-                
-                const file = await this.vault.createBinary(filePath, bytes.buffer);
-                return file;
             }
+            const folderPath = filePath.split('/').slice(0, -1).join('/');
+            if (folderPath && !await this.vault.adapter.exists(folderPath)) {
+                await this.vault.createFolder(folderPath);
+            }
+            const file = await this.vault.createBinary(filePath, image.buffer);
+            logger.info('Saved Recraft image to vault:', filePath);
+            return file;
         } catch (error) {
-            logger.error('Error saving image:', error);
+            logger.error('Error saving Recraft image:', error);
             throw error;
         }
     }
 
-    getImagePath(baseName: string, width: number, height: number, timestamp: number): string {
-        const fileName = `${baseName}_${width}x${height}_${timestamp}.png`;
-        
-        // If the path starts with '/', treat it as an absolute path
-        if (this.settings.imageOutputFolder.startsWith('/')) {
-            return `${this.settings.imageOutputFolder}/${fileName}`.replace(/\/\//g, '/');
-        } else {
-            // Relative path - let Obsidian handle it relative to vault root
-            return `${this.settings.imageOutputFolder}/${fileName}`.replace(/\/\//g, '/');
-        }
+    getImagePath(image: GeneratedImage, baseName: string): string {
+        const fileName = `${baseName}_${image.width}x${image.height}_${image.timestamp}.${image.extension}`;
+        return `${this.settings.imageOutputFolder}/${fileName}`.replace(/\/\//g, '/');
     }
 }
