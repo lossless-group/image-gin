@@ -3,7 +3,7 @@ import type { App, TFile } from 'obsidian';
 import { Modal, Setting, Notice } from 'obsidian';
 import type { ToggleComponent } from 'obsidian';
 import type ImageGinPlugin from '../../main';
-import { RecraftImageService, isLegacyRecraftModel } from '../services/recraftImageService';
+import { RecraftImageService, isLegacyRecraftModel, newRecraftSeed } from '../services/recraftImageService';
 import { STYLE_OPTIONS } from '../settings/settings';
 import type { ImageSize } from '../types';
 import { asString } from '../utils/coerce';
@@ -347,6 +347,8 @@ export class CurrentFileModal extends Modal {
             // an unusable config (e.g. V4 Styles with no style) before any
             // credits are spent.
             const styleParams = imageService.buildStyleParams();
+            const seed = this.plugin.settings.recraftShareSeedAcrossSizes ? newRecraftSeed() : null;
+            if (seed !== null) logger.info('Recraft seed shared across sizes:', seed);
 
             // Generate images for each selected size
             for (const size of sizesToGenerate) {
@@ -357,7 +359,8 @@ export class CurrentFileModal extends Modal {
                         this.imagePrompt,
                         size.width,
                         size.height,
-                        styleParams
+                        styleParams,
+                        seed
                     );
 
                     // Save the image

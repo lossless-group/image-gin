@@ -181,6 +181,12 @@ export interface ImageGinSettings {
     recraftStyleMatch: '' | RecraftStyleMatch;
     // Raster output format. Ignored (and not sent) for vector models.
     recraftImageFormat: 'webp' | 'png';
+    // Brand palette sent as controls.colors, e.g. "#fbbf24, #f97316".
+    recraftBrandColors: string;
+    // Optional single hex sent as controls.background_color.
+    recraftBackgroundColor: string;
+    // One random_seed shared by every size in a run, so a set stays coherent.
+    recraftShareSeedAcrossSizes: boolean;
     imagePromptKey: string;
     imageSizes: ImageSize[];
     defaultBannerSize: string;
@@ -227,6 +233,9 @@ export const DEFAULT_SETTINGS: ImageGinSettings = {
     recraftStyleReferenceUrls: '',
     recraftStyleMatch: '',
     recraftImageFormat: 'webp',
+    recraftBrandColors: '',
+    recraftBackgroundColor: '',
+    recraftShareSeedAcrossSizes: true,
     imagePromptKey: 'image_prompt',
     imageSizes: [...DEFAULT_IMAGE_SIZES],
     defaultBannerSize: 'banner',
@@ -562,6 +571,41 @@ export class ImageGinSettingTab extends PluginSettingTab {
                 .onChange(async (value) => {
                     this.plugin.settings.recraftStyleMatch =
                         value === 'flexible' || value === 'precise' ? value : '';
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Brand colors')
+            .setDesc('Hex colors Recraft should prefer, separated by commas or new lines. Styles set the technique; this keeps the palette consistent across images.')
+            .addTextArea(text => {
+                text.inputEl.rows = 2;
+                text
+                    .setPlaceholder('Amber #fbbf24, orange #f97316, ink #0a0c10')
+                    .setValue(this.plugin.settings.recraftBrandColors)
+                    .onChange(async (value) => {
+                        this.plugin.settings.recraftBrandColors = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
+
+        new Setting(containerEl)
+            .setName('Background color')
+            .setDesc('Optional hex color for the image background.')
+            .addText(text => text
+                .setPlaceholder('Cream #f6f1e4')
+                .setValue(this.plugin.settings.recraftBackgroundColor)
+                .onChange(async (value) => {
+                    this.plugin.settings.recraftBackgroundColor = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Share one seed across sizes')
+            .setDesc('Every size in a run uses the same random seed, so the set looks like one family.')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.recraftShareSeedAcrossSizes)
+                .onChange(async (value) => {
+                    this.plugin.settings.recraftShareSeedAcrossSizes = value;
                     await this.plugin.saveSettings();
                 }));
 

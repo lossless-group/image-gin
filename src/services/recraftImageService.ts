@@ -99,6 +99,31 @@ export function toRecraftSize(width: number, height: number): string {
     return `${best[0]}:${best[1]}`;
 }
 
+export interface RecraftColor {
+    rgb: [number, number, number];
+}
+
+/**
+ * Parse "#rrggbb" / "#rgb" colors from free text into Recraft color
+ * objects. The "#" is required so words like "bad" or "face" in a label
+ * ("amber #fbbf24, ink #0a0c10") are never read as colors.
+ */
+export function parseHexColors(input: string): RecraftColor[] {
+    const colors: RecraftColor[] = [];
+    for (const m of input.matchAll(/#([0-9a-f]{6}|[0-9a-f]{3})(?![0-9a-z])/gi)) {
+        let hex = m[1]!;
+        if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+        const n = parseInt(hex, 16);
+        colors.push({ rgb: [(n >> 16) & 255, (n >> 8) & 255, n & 255] });
+    }
+    return colors;
+}
+
+/** A seed in Recraft's accepted integer range, shared across one run's sizes. */
+export function newRecraftSeed(): number {
+    return Math.floor(Math.random() * 2_147_483_647);
+}
+
 function extensionFor(contentType: string, bytes: ArrayBuffer): GeneratedImage['extension'] {
     const ct = contentType.toLowerCase();
     if (ct.includes('svg')) return 'svg';
@@ -164,11 +189,29 @@ export class RecraftImageService {
         return {};
     }
 
+    /**
+     * Brand palette → `controls` (endpoints#controls; all models). Curated
+     * and custom styles fix the rendering technique, not the colors, so
+     * without this each size in a run picks its own palette.
+     */
+    buildControlParams(): { controls?: { colors?: RecraftColor[]; background_color?: RecraftColor } } {
+        const colors = parseHexColors(this.settings.recraftBrandColors);
+        const background = parseHexColors(this.settings.recraftBackgroundColor)[0];
+        if (colors.length === 0 && !background) return {};
+        return {
+            controls: {
+                ...(colors.length > 0 ? { colors } : {}),
+                ...(background ? { background_color: background } : {}),
+            },
+        };
+    }
+
     async generateImage(
         prompt: string,
         width: number,
         height: number,
-        styleParams: RecraftStyleParams
+        styleParams: RecraftStyleParams,
+        seed: number | null = null
     ): Promise<GeneratedImage> {
         if (!this.settings.recraftApiKey) {
             throw new Error('Recraft API key is not set. Please configure it in the plugin settings.');
@@ -197,6 +240,8 @@ export class RecraftImageService {
             response_format: 'url',
             ...formatParams,
             ...styleParams,
+            ...this.buildControlParams(),
+            ...(seed === null ? {} : { random_seed: seed }),
         };
 
         logger.info('=== Recraft API Request ===');

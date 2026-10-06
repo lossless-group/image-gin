@@ -10,6 +10,7 @@ import assert from 'node:assert/strict';
 import type { Vault } from 'obsidian';
 import {
     RecraftImageService,
+    parseHexColors,
     toRecraftSize,
 } from '../src/services/recraftImageService';
 import { DEFAULT_SETTINGS } from '../src/settings/settings';
@@ -326,5 +327,61 @@ describe('[docs requirement] createStyle', () => {
         const svc = new RecraftImageService(makeSettings({ recraftModelChoice: 'recraftv3' }), makeVault().vault) as unknown as WithCreateStyle;
         assert.equal(await svc.createStyle(['https://r/1.png']), 'v3-style');
         assert.equal((JSON.parse(String(requests[0]!.body)) as Record<string, unknown>).model, 'recraftv3');
+    });
+});
+
+describe('palette and seed consistency', () => {
+    // endpoints#controls and #generate-image: random_seed, controls.colors,
+    // and controls.background_color are supported on all models.
+    test('parseHexColors reads #rrggbb and #rgb, ignores labels and bare words', () => {
+        assert.deepEqual(parseHexColors('amber #fbbf24, ink #0a0c10\n#fff bad face'), [
+            { rgb: [251, 191, 36] },
+            { rgb: [10, 12, 16] },
+            { rgb: [255, 255, 255] },
+        ]);
+        assert.deepEqual(parseHexColors(''), []);
+        assert.deepEqual(parseHexColors('#12345g #1234567'), []);
+    });
+
+    test('brand colors and background go out as controls on V3', async () => {
+        serveHappy();
+        await generate(makeSettings({
+            recraftModelChoice: 'recraftv3',
+            recraftBrandColors: '#fbbf24, #f97316',
+            recraftBackgroundColor: '#f6f1e4',
+        }));
+        assert.deepEqual(generationBody().controls, {
+            colors: [{ rgb: [251, 191, 36] }, { rgb: [249, 115, 22] }],
+            background_color: { rgb: [246, 241, 228] },
+        });
+    });
+
+    test('brand colors go out as controls on V4.1', async () => {
+        serveHappy();
+        await generate(makeSettings({ recraftBrandColors: '#a3e635' }));
+        assert.deepEqual(generationBody().controls, { colors: [{ rgb: [163, 230, 53] }] });
+    });
+
+    test('no palette configured means no controls key', async () => {
+        serveHappy();
+        await generate(makeSettings());
+        assert.ok(!('controls' in generationBody()));
+    });
+
+    test('a shared seed is sent as random_seed on every size', async () => {
+        serveHappy();
+        const svc = new RecraftImageService(makeSettings(), makeVault().vault);
+        await svc.generateImage('p', 2048, 1024, svc.buildStyleParams(), 1948);
+        await svc.generateImage('p', 1024, 1024, svc.buildStyleParams(), 1948);
+        const seeds = requests
+            .filter(r => r.url === GENERATIONS_URL)
+            .map(r => (JSON.parse(String(r.body)) as Record<string, unknown>).random_seed);
+        assert.deepEqual(seeds, [1948, 1948]);
+    });
+
+    test('no seed means no random_seed key', async () => {
+        serveHappy();
+        await generate(makeSettings());
+        assert.ok(!('random_seed' in generationBody()));
     });
 });
