@@ -1,7 +1,7 @@
 import { logger } from '../utils/logger';
 import type { ImageSize } from '../types';
-import type { App} from 'obsidian';
-import { PluginSettingTab, Setting, Notice } from 'obsidian';
+import type { App, SettingDefinitionItem, SettingGroupItem } from 'obsidian';
+import { PluginSettingTab, Notice } from 'obsidian';
 import type ImageGinPlugin from '../../main';
 import { RECRAFT_MODELS, RecraftImageService } from '../services/recraftImageService';
 import type { RecraftStyleMatch } from '../services/recraftImageService';
@@ -215,17 +215,6 @@ export const DEFAULT_STYLE_SETTINGS: StyleSettings = {
     customStyleId: null  // Using null instead of undefined
 };
 
-// Legacy default styles (kept for backward compatibility)
-export const DEFAULT_IMAGE_STYLES_JSON = JSON.stringify([
-    {
-        "creation_time": "2025-04-15T02:24:01.574783871Z",
-        "credits": 40,
-        "id": "<your_style_id>",
-        "is_private": true,
-        "style": "digital_illustration"
-    }
-], null, 2);
-
 export const DEFAULT_SETTINGS: ImageGinSettings = {
     recraftApiKey: '',
     recraftBaseUrl: 'https://external.api.recraft.ai/v1/images/generations',
@@ -311,6 +300,65 @@ export const DEFAULT_SETTINGS: ImageGinSettings = {
     },
 };
 
+
+// ─── Settings tab (Obsidian ≥ 1.13 declarative API) ─────────────────────
+//
+// Obsidian renders and search-indexes these definitions itself, so one
+// broken row can no longer take the rest of the tab down with it (the 0.2.x
+// failure mode). Controls bind to dot-path keys into plugin.settings via
+// getControlValue / setControlValue below.
+
+/** Bound to the "Custom style ID" row; keeps style.useCustomStyle in sync. */
+const CUSTOM_STYLE_ID_KEY = 'style.customStyleId';
+
+/** Toggles that other rows' `visible` predicates depend on. */
+const VISIBILITY_KEYS = new Set([
+    'imageKit.enabled',
+    'magnific.enabled',
+    'ideogram.enabled',
+    'imageCache.enabled',
+    'imageCache.autoCleanup',
+    'dropGate.enabled',
+    'imgur.enabled',
+]);
+
+const VALID_DIMENSIONS = 'Valid widths and heights: 1024, 1280, 1365, 1434, 1536, 1707, 1820, 2048';
+
+function getPath(root: unknown, path: string): unknown {
+    let current: unknown = root;
+    for (const part of path.split('.')) {
+        if (current === null || typeof current !== 'object') return undefined;
+        current = (current as Record<string, unknown>)[part];
+    }
+    return current;
+}
+
+function setPath(root: object, path: string, value: unknown): void {
+    const parts = path.split('.');
+    const last = parts.pop();
+    if (last === undefined) return;
+    let current = root as Record<string, unknown>;
+    for (const part of parts) {
+        const next = current[part];
+        if (next === null || typeof next !== 'object') {
+            const created: Record<string, unknown> = {};
+            current[part] = created;
+            current = created;
+        } else {
+            current = next as Record<string, unknown>;
+        }
+    }
+    current[last] = value;
+}
+
+function wholeNumberAtLeastOne(value: number): string | undefined {
+    return Number.isInteger(value) && value > 0 ? undefined : 'Enter a whole number greater than 0.';
+}
+
+function optionsFrom(values: readonly string[]): Record<string, string> {
+    return Object.fromEntries(values.map(v => [v, v]));
+}
+
 export class ImageGinSettingTab extends PluginSettingTab {
     plugin: ImageGinPlugin;
 
@@ -319,851 +367,561 @@ export class ImageGinSettingTab extends PluginSettingTab {
         this.plugin = plugin;
     }
 
-    private renderImageSizeSettings(containerEl: HTMLElement): void {
-        const sizesContainer = containerEl.createDiv('image-sizes-container');
-        new Setting(sizesContainer).setName("Image size presets").setHeading();
-        
-        this.plugin.settings.imageSizes.forEach((size, index) => {
-            const setting = new Setting(sizesContainer)
-                .setClass('image-size-setting');
+    getControlValue(key: string): unknown {
+        return getPath(this.plugin.settings, key);
+    }
 
-            // Label
-            setting.addText(text => text
-                .setPlaceholder('Label')
-                .setValue(size.label)
-                .onChange(async (value) => {
-                    size.label = value;
-                    await this.plugin.saveSettings();
-                }));
+    async setControlValue(key: string, value: unknown): Promise<void> {
+        if (key === CUSTOM_STYLE_ID_KEY) {
+            const id = typeof value === 'string' ? value.trim() : '';
+            this.plugin.settings.style.customStyleId = id || null;
+            this.plugin.settings.style.useCustomStyle = id.length > 0;
+        } else {
+            setPath(this.plugin.settings, key, value);
+        }
+        await this.plugin.saveSettings();
+        // update() re-collects the definitions and re-evaluates every
+        // `visible` predicate, so dependent rows appear or disappear.
+        if (VISIBILITY_KEYS.has(key)) this.update();
+    }
 
-            // YAML Key
-            setting.addText(text => text
-                .setPlaceholder('YAML_key')
-                .setValue(size.yamlKey)
-                .onChange(async (value) => {
-                    size.yamlKey = value;
-                    await this.plugin.saveSettings();
-                }));
-
-            // Width
-            setting.addText(text => {
-                const input = text.inputEl;
-                input.title = 'Valid widths: 1024, 1280, 1365, 1434, 1536, 1707, 1820, 2048';
-                return text
-                    .setPlaceholder('Width')
-                    .setValue(size.width.toString())
-                    .onChange(async (value) => {
-                        const num = parseInt(value, 10);
-                        if (!isNaN(num)) {
-                            size.width = num;
-                            await this.plugin.saveSettings();
-                        }
-                    });
-            });
-
-            // Height
-            setting.addText(text => {
-                const input = text.inputEl;
-                input.title = 'Valid heights: 1024, 1280, 1365, 1434, 1536, 1707, 1820, 2048';
-                return text
-                    .setPlaceholder('Height')
-                    .setValue(size.height.toString())
-                    .onChange(async (value) => {
-                        const num = parseInt(value, 10);
-                        if (!isNaN(num)) {
-                            size.height = num;
-                            await this.plugin.saveSettings();
-                        }
-                    });
-            });
-
-            // Delete button
-            setting.addExtraButton(button => {
-                button
-                    .setIcon('trash')
-                    .setTooltip('Delete this size')
-                    .onClick(async () => {
-                        this.plugin.settings.imageSizes.splice(index, 1);
-                        await this.plugin.saveSettings();
-                        this.display(); // Refresh the settings UI
-                    });
-            });
-        });
-
-        // Add button to create new size preset
-        new Setting(sizesContainer)
-            .addButton(button => {
-                button
-                    .setButtonText('Add new size')
-                    .setCta()
-                    .onClick(async () => {
-                        this.plugin.settings.imageSizes.push({
+    getSettingDefinitions(): SettingDefinitionItem[] {
+        const s = this.plugin.settings;
+        return [
+            { type: 'group', heading: '🎨 Recraft image generation', items: this.recraftItems() },
+            {
+                type: 'list',
+                heading: 'Image size presets',
+                emptyState: 'No size presets. Add one to generate images.',
+                items: this.sizePresetItems(),
+                addItem: {
+                    name: 'Add new size',
+                    action: () => {
+                        s.imageSizes.push({
                             id: `custom-${Date.now()}`,
                             yamlKey: 'custom_image',
-                            width: 800,
-                            height: 600,
-                            label: 'New Size'
+                            width: 1024,
+                            height: 1024,
+                            label: 'New size',
                         });
-                        await this.plugin.saveSettings();
-                        this.display(); // Refresh the settings UI
-                    });
-            });
-
-        // Styles Configuration Section
-        new Setting(containerEl).setName("Style configurations").setHeading();
-        containerEl.createEl('p', {
-            text: 'Configure style presets for image generation',
-            cls: 'setting-item-description'
-        });
-
-        const stylesSetting = new Setting(containerEl)
-            .setName('Style presets')
-            .setDesc('JSON array of style configurations');
-
-        const stylesTextArea = activeDocument.createEl('textarea');
-        stylesTextArea.rows = 10;
-        stylesTextArea.addClass('image-gin-text-area');
-        stylesTextArea.placeholder = 'Enter style configurations as JSON...';
-        
-        // Format the JSON for display
-        try {
-            const stylesJson: unknown = JSON.parse(this.plugin.settings.imageStylesJSON);
-            stylesTextArea.value = JSON.stringify(stylesJson, null, 2);
-        } catch {
-            // If not valid JSON, display as is
-            stylesTextArea.value = this.plugin.settings.imageStylesJSON;
-        }
-        
-        // Add input event listener
-        stylesTextArea.addEventListener('input', () => void (async () => {
-            try {
-                // Try to parse to validate JSON
-                JSON.parse(stylesTextArea.value);
-                this.plugin.settings.imageStylesJSON = stylesTextArea.value;
-                await this.plugin.saveSettings();
-                // Update the textarea with formatted JSON
-                stylesTextArea.value = JSON.stringify(JSON.parse(stylesTextArea.value), null, 2);
-            } catch {
-                // If invalid JSON, still save but don't format
-                this.plugin.settings.imageStylesJSON = stylesTextArea.value;
-                await this.plugin.saveSettings();
-            }
-        })());
-        
-        // Add the textarea to the setting
-        stylesSetting.settingEl.appendChild(stylesTextArea);
-        
-        // Add a reset button in a new setting row
-        new Setting(containerEl)
-            .setName('')
-            .setDesc('')
-            .addButton(button => {
-                button
-                    .setButtonText('Reset to default')
-                    .onClick(async () => {
-                        this.plugin.settings.imageStylesJSON = DEFAULT_IMAGE_STYLES_JSON;
-                        await this.plugin.saveSettings();
-                        stylesTextArea.value = JSON.stringify(JSON.parse(DEFAULT_IMAGE_STYLES_JSON), null, 2);
-                        new Notice('Styles reset to default');
-                    });
-            });
+                        void this.saveAndRebuild();
+                    },
+                },
+                onDelete: (index) => {
+                    s.imageSizes.splice(index, 1);
+                    void this.saveAndRebuild();
+                },
+                onReorder: (oldIndex, newIndex) => {
+                    const [moved] = s.imageSizes.splice(oldIndex, 1);
+                    if (moved) s.imageSizes.splice(newIndex, 0, moved);
+                    void this.saveAndRebuild();
+                },
+            },
+            { type: 'group', heading: '☁️ ImageKit CDN upload & hosting', items: this.imageKitItems() },
+            { type: 'group', heading: 'Magnific image search', items: this.magnificItems() },
+            { type: 'group', heading: '🖼️ Ideogram image generation', items: this.ideogramItems() },
+            { type: 'group', heading: 'Image cache', items: this.imageCacheItems() },
+            { type: 'group', heading: 'Drag-drop / paste confirmation gate', items: this.dropGateItems() },
+            { type: 'group', heading: 'Imgur (public CDN)', items: this.imgurItems() },
+        ];
     }
 
-    display(): void {
-        const { containerEl } = this;
-        containerEl.empty();
+    /** Persist, then rebuild the definitions (structural changes such as list add/delete). */
+    private async saveAndRebuild(): Promise<void> {
+        await this.plugin.saveSettings();
+        this.update();
+    }
 
-        ;
-
-        // === RECRAFT IMAGE GENERATION SETTINGS ===
-        new Setting(containerEl).setName("🎨 Recraft image generation").setHeading();
-        
-        // API Key
-        new Setting(containerEl)
-            .setName('Recraft API key')
-            .setDesc('Your Recraft.ai API key for image generation')
-            .addText(text => text
-                .setPlaceholder('Enter your API key')
-                .setValue(this.plugin.settings.recraftApiKey)
-                .onChange(async (value) => {
-                    this.plugin.settings.recraftApiKey = value;
-                    await this.plugin.saveSettings();
-                }));
-                
-        // Model Choice
-        new Setting(containerEl)
-            .setName('Model')
-            .setDesc('Select the Recraft model to use for image generation')
-            .addDropdown(dropdown => {
-                for (const m of RECRAFT_MODELS) dropdown.addOption(m.id, m.label);
-                dropdown
-                    .setValue(this.plugin.settings.recraftModelChoice)
-                    .onChange(async (value) => {
-                        this.plugin.settings.recraftModelChoice = value;
-                        await this.plugin.saveSettings();
-                    });
-            });
-
-        // Style: V4+ models take a custom style ID or reference images;
-        // V2/V3 also accept a custom style ID (created for that model).
-        new Setting(containerEl)
-            .setName('Custom style ID')
-            .setDesc('A Recraft style ID, which only works with the model it was created for. Leave empty to use reference URLs or the curated preset.')
-            .addText(text => text
-                .setPlaceholder('Paste a style ID')
-                .setValue(this.plugin.settings.style.customStyleId ?? '')
-                .onChange(async (value) => {
-                    const id = value.trim();
-                    this.plugin.settings.style.customStyleId = id || null;
-                    this.plugin.settings.style.useCustomStyle = id.length > 0;
-                    await this.plugin.saveSettings();
-                }));
-
-        new Setting(containerEl)
-            .setName('Style reference URLs')
-            .setDesc('V4+ only. One per line (1–10): an image URL, or the path of an image in your vault. Vault images are sent inline, so nothing needs hosting. Generating with these creates a style each time (+$0.005); use the button below to create it once instead.')
-            .addTextArea(text => {
-                text.inputEl.rows = 3;
-                text
-                    .setPlaceholder('Visuals/reference-1.png')
-                    .setValue(this.plugin.settings.recraftStyleReferenceUrls)
-                    .onChange(async (value) => {
-                        this.plugin.settings.recraftStyleReferenceUrls = value;
-                        await this.plugin.saveSettings();
-                    });
-            });
-
-        new Setting(containerEl)
-            .setName('Create style from references')
-            .setDesc('Creates a reusable style from the reference URLs above for the selected model, then sets it as the custom style ID. Not available for flash models.')
-            .addButton(button => button
-                .setButtonText('Create style')
-                .onClick(async () => {
-                    const urls = this.plugin.settings.recraftStyleReferenceUrls
-                        .split('\n')
-                        .map(s => s.trim())
-                        .filter(Boolean);
-                    button.setDisabled(true);
-                    try {
-                        const service = new RecraftImageService(this.plugin.settings, this.app.vault);
-                        const id = await service.createStyle(urls);
-                        const styleSettings = this.plugin.settings.style;
-                        styleSettings.customStyleId = id;
-                        styleSettings.useCustomStyle = true;
-                        await this.plugin.saveSettings();
-                        this.display();
-                        new Notice(`Created Recraft style ${id}`);
-                    } catch (error) {
-                        logger.error('Failed to create Recraft style:', error);
-                        new Notice(`Failed to create style: ${error instanceof Error ? error.message : String(error)}`);
-                        button.setDisabled(false);
-                    }
-                }));
-
-        new Setting(containerEl)
-            .setName('Style match')
-            .setDesc('V4+ only. How closely to follow the style.')
-            .addDropdown(dropdown => dropdown
-                .addOption('', 'Style default')
-                .addOption('flexible', 'Flexible')
-                .addOption('precise', 'Precise')
-                .setValue(this.plugin.settings.recraftStyleMatch)
-                .onChange(async (value) => {
-                    this.plugin.settings.recraftStyleMatch =
-                        value === 'flexible' || value === 'precise' ? value : '';
-                    await this.plugin.saveSettings();
-                }));
-
-        new Setting(containerEl)
-            .setName('Brand colors')
-            .setDesc('Hex colors Recraft should prefer, separated by commas or new lines. Styles set the technique; this keeps the palette consistent across images.')
-            .addTextArea(text => {
-                text.inputEl.rows = 2;
-                text
-                    .setPlaceholder('Amber #fbbf24, orange #f97316, ink #0a0c10')
-                    .setValue(this.plugin.settings.recraftBrandColors)
-                    .onChange(async (value) => {
-                        this.plugin.settings.recraftBrandColors = value;
-                        await this.plugin.saveSettings();
-                    });
-            });
-
-        new Setting(containerEl)
-            .setName('Background color')
-            .setDesc('Optional hex color for the image background.')
-            .addText(text => text
-                .setPlaceholder('Cream #f6f1e4')
-                .setValue(this.plugin.settings.recraftBackgroundColor)
-                .onChange(async (value) => {
-                    this.plugin.settings.recraftBackgroundColor = value;
-                    await this.plugin.saveSettings();
-                }));
-
-        new Setting(containerEl)
-            .setName('Share one seed across sizes')
-            .setDesc('Every size in a run uses the same random seed, so the set looks like one family.')
-            .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.recraftShareSeedAcrossSizes)
-                .onChange(async (value) => {
-                    this.plugin.settings.recraftShareSeedAcrossSizes = value;
-                    await this.plugin.saveSettings();
-                }));
-
-        new Setting(containerEl)
-            .setName('Image format')
-            .setDesc('Raster output format. Vector models ignore this setting.')
-            .addDropdown(dropdown => dropdown
-                .addOption('webp', 'WebP')
-                .addOption('png', 'PNG')
-                .setValue(this.plugin.settings.recraftImageFormat)
-                .onChange(async (value) => {
-                    this.plugin.settings.recraftImageFormat = value === 'png' ? 'png' : 'webp';
-                    await this.plugin.saveSettings();
-                }));
-
-        // Base URL setting
-        new Setting(containerEl)
-            .setName('Recraft API base URL')
-            .setDesc('Recraft API base URL (change only if using custom endpoint)')
-            .addText(text => text
-                .setPlaceholder('HTTPS://external.API.Recraft.ai/v1/images/generations')
-                .setValue(this.plugin.settings.recraftBaseUrl)
-                .onChange(async (value) => {
-                    this.plugin.settings.recraftBaseUrl = value;
-                    await this.plugin.saveSettings();
-                }));
-
-        // Image Output Folder setting
-        new Setting(containerEl)
-            .setName('Image output folder')
-            .setDesc('Folder path where generated images will be saved. Use absolute path (e.g., /users/username/path) or relative to vault root')
-            .addText(text => text
-                .setPlaceholder('Assets/ImageGin')
-                .setValue(this.plugin.settings.imageOutputFolder)
-                .onChange(async (value) => {
-                    this.plugin.settings.imageOutputFolder = value;
-                    await this.plugin.saveSettings();
-                }));
-
-        // Recraft-specific settings: Image size presets and style configurations
-        this.renderImageSizeSettings(containerEl);
-
-        // === IMAGEKIT CDN SETTINGS ===
-        new Setting(containerEl).setName("☁️ ImageKit CDN upload & hosting").setHeading();
-        
-        // ImageKit Enable Toggle
-        new Setting(containerEl)
-            .setName('Enable ImageKit CDN')
-            .setDesc('Upload generated images to ImageKit CDN for optimized delivery')
-            .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.imageKit.enabled)
-                .onChange(async (value) => {
-                    this.plugin.settings.imageKit.enabled = value;
-                    await this.plugin.saveSettings();
-                }));
-
-        // ImageKit Public Key
-        new Setting(containerEl)
-            .setName('ImageKit public key')
-            .setDesc('Your ImageKit public key (found in ImageKit dashboard)')
-            .addText(text => text
-                .setPlaceholder('Public_key_here')
-                .setValue(this.plugin.settings.imageKit.publicKey)
-                .onChange(async (value) => {
-                    this.plugin.settings.imageKit.publicKey = value;
-                    await this.plugin.saveSettings();
-                }));
-
-        // ImageKit Private Key
-        new Setting(containerEl)
-            .setName('ImageKit private key')
-            .setDesc('Your ImageKit private key (keep this secure!)')
-            .addText(text => text
-                .setPlaceholder('Private_key_here')
-                .setValue(this.plugin.settings.imageKit.privateKey)
-                .onChange(async (value) => {
-                    this.plugin.settings.imageKit.privateKey = value;
-                    await this.plugin.saveSettings();
-                }));
-
-        // ImageKit URL Endpoint
-        new Setting(containerEl)
-            .setName('ImageKit URL endpoint')
-            .setDesc('Your ImageKit CDN URL endpoint for serving images')
-            .addText(text => text
-                .setPlaceholder('HTTPS://ik.ImageKit.io/your-ImageKit-id')
-                .setValue(this.plugin.settings.imageKit.urlEndpoint)
-                .onChange(async (value) => {
-                    this.plugin.settings.imageKit.urlEndpoint = value;
-                    await this.plugin.saveSettings();
-                }));
-
-        // ImageKit Upload Endpoint
-        new Setting(containerEl)
-            .setName('ImageKit upload endpoint')
-            .setDesc('ImageKit API endpoint for uploading files')
-            .addText(text => text
-                .setPlaceholder('HTTPS://upload.ImageKit.io/API/v1/files/upload')
-                .setValue(this.plugin.settings.imageKit.uploadEndpoint)
-                .onChange(async (value) => {
-                    this.plugin.settings.imageKit.uploadEndpoint = value;
-                    await this.plugin.saveSettings();
-                }));
-
-        // ImageKit Upload Folder
-        new Setting(containerEl)
-            .setName('ImageKit upload folder')
-            .setDesc('Folder path in ImageKit where images will be uploaded. {YYYY}, {MM}, and {DD} are filled in with the upload date, e.g. /images/{YYYY}-{MM}.')
-            .addText(text => text
-                .setPlaceholder('/images/{YYYY}-{MM}')
-                .setValue(this.plugin.settings.imageKit.uploadFolder)
-                .onChange(async (value) => {
-                    this.plugin.settings.imageKit.uploadFolder = value;
-                    await this.plugin.saveSettings();
-                }));
-
-        // Remove Local Files Toggle
-        new Setting(containerEl)
-            .setName('Remove local files after upload')
-            .setDesc('Delete local image files after successful upload to ImageKit')
-            .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.imageKit.removeLocalFiles)
-                .onChange(async (value) => {
-                    this.plugin.settings.imageKit.removeLocalFiles = value;
-                    await this.plugin.saveSettings();
-                }));
-
-        // Convert to WebP Toggle
-        new Setting(containerEl)
-            .setName('Convert to WebP')
-            .setDesc('Convert uploaded images to WebP format for better optimization')
-            .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.imageKit.convertToWebp)
-                .onChange(async (value) => {
-                    this.plugin.settings.imageKit.convertToWebp = value;
-                    await this.plugin.saveSettings();
-                }));
-
-        // Magnific Settings Section
-        new Setting(containerEl).setName("Magnific image search").setHeading();
-
-        // Magnific Enable Toggle
-        new Setting(containerEl)
-            .setName('Enable Magnific integration')
-            .setDesc('Enable Magnific image search functionality')
-            .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.magnific.enabled)
-                .onChange(async (value) => {
-                    this.plugin.settings.magnific.enabled = value;
-                    await this.plugin.saveSettings();
-                    this.display(); // Refresh to show/hide dependent settings
-                }));
-
-        if (this.plugin.settings.magnific.enabled) {
-            // Magnific API Key
-            new Setting(containerEl)
-                .setName('Magnific API key')
-                .setDesc('Your Magnific API key for accessing the image search service')
-                .addText(text => text
-                    .setPlaceholder('Enter your Magnific API key')
-                    .setValue(this.plugin.settings.magnific.apiKey)
-                    .onChange(async (value) => {
-                        this.plugin.settings.magnific.apiKey = value;
-                        await this.plugin.saveSettings();
-                    }));
-
-            // Default License Type
-            new Setting(containerEl)
-                .setName('Default license type')
-                .setDesc('Default license type for Magnific image searches')
-                .addDropdown(dropdown => dropdown
-                    .addOption('freemium', 'Freemium')
-                    .addOption('premium', 'Premium')
-                    .setValue(this.plugin.settings.magnific.defaultLicense)
-                    .onChange(async (value) => {
-                        this.plugin.settings.magnific.defaultLicense = value as 'freemium' | 'premium';
-                        await this.plugin.saveSettings();
-                    }));
-
-            // Default Image Count
-            new Setting(containerEl)
-                .setName('Default image count')
-                .setDesc('Default number of images to fetch in search results (1-50)')
-                .addSlider(slider => slider
-                    .setLimits(1, 50, 1)
-                    .setValue(this.plugin.settings.magnific.defaultImageCount)
-                    .setDynamicTooltip()
-                    .onChange(async (value) => {
-                        this.plugin.settings.magnific.defaultImageCount = value;
-                        await this.plugin.saveSettings();
-                    }));
+    private recraftItems(): SettingGroupItem[] {
+        const substyleOptions: Record<string, string> = { '': 'None (base style only)' };
+        for (const group of Object.values(STYLE_OPTIONS)) {
+            for (const sub of group.substyles) substyleOptions[sub.id] = `${group.label}: ${sub.label}`;
         }
+        const baseStyleOptions: Record<string, string> = {};
+        for (const [id, group] of Object.entries(STYLE_OPTIONS)) baseStyleOptions[id] = group.label;
 
-        // === IDEOGRAM IMAGE GENERATION SETTINGS ===
-        new Setting(containerEl).setName("🖼️ Ideogram image generation").setHeading();
-
-        new Setting(containerEl)
-            .setName('Enable Ideogram integration')
-            .setDesc('Generate images via Ideogram v3 with brand-template prompt wrapping')
-            .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.ideogram.enabled)
-                .onChange(async (value) => {
-                    this.plugin.settings.ideogram.enabled = value;
-                    await this.plugin.saveSettings();
-                    this.display();
-                }));
-
-        if (this.plugin.settings.ideogram.enabled) {
-            new Setting(containerEl)
-                .setName('Ideogram API key')
-                .setDesc('Your Ideogram API key (sent as the API-Key header)')
-                .addText(text => text
-                    .setPlaceholder('Enter your Ideogram API key')
-                    .setValue(this.plugin.settings.ideogram.apiKey)
-                    .onChange(async (value) => {
-                        this.plugin.settings.ideogram.apiKey = value;
-                        await this.plugin.saveSettings();
-                    }));
-
-            new Setting(containerEl).setName("Brand template").setHeading();
-            const brandIntro = containerEl.createDiv({ cls: 'setting-item-description' });
-            brandIntro.createEl('p', {
-                text: 'Prepends/appends fixed text to every per-file prompt so all generated images share a consistent style. The per-file prompt itself is the file\'s image_prompt frontmatter (or whatever you type in the modal). There are two assembly patterns:',
-            });
-            const list = brandIntro.createEl('ol');
-            const li1 = list.createEl('li');
-            li1.createEl('strong', { text: 'Bookends ' });
-            li1.appendText('— leave both fields as plain text. The prefix goes before the per-file prompt and the suffix goes after. Final = ');
-            li1.createEl('code', { text: 'Prefix + per-file prompt + suffix' });
-            li1.appendText('. Good when your style guide naturally brackets the subject (e.g. prefix = "Editorial illustration of:", suffix = "in our house style, soft pastel background").');
-            const li2 = list.createEl('li');
-            li2.createEl('strong', { text: 'Slot insertion ' });
-            li2.appendText('— include the literal token ');
-            li2.createEl('code', { text: '{prompt}' });
-            li2.appendText(' somewhere in the prefix. The per-file prompt is substituted at that exact position and the suffix is ignored. Good when the per-file prompt needs to land mid-sentence (e.g. prefix = "Editorial illustration in our house style: {prompt}, on a soft pastel background").');
-            brandIntro.createEl('p', {
-                text: 'Use the modal\'s resolved prompt preview to see exactly what gets sent to Ideogram before generating.',
-            });
-
-            const renderTextarea = (
-                name: string,
-                desc: string,
-                placeholder: string,
-                getValue: () => string,
-                setValue: (value: string) => Promise<void>
-            ): void => {
-                const setting = new Setting(containerEl).setName(name).setDesc(desc);
-                const textarea = activeDocument.createEl('textarea');
-                textarea.rows = 3;
-                textarea.addClass('image-gin-text-area-md');
-                textarea.placeholder = placeholder;
-                textarea.value = getValue();
-                textarea.addEventListener('input', () => void (async () => {
-                    await setValue(textarea.value);
-                })());
-                setting.settingEl.appendChild(textarea);
-            };
-
-            renderTextarea(
-                'Prompt prefix — Style Notes',
-                'What this is for: the visual style every image should share — illustration approach, palette mood, line/texture qualities, composition feel. Plain text → prepended. Contains {prompt} → the per-file subject is substituted at that exact position and the suffix is ignored.',
-                'e.g. Style Notes: Comic-book editorial illustration in a clean modern style: {prompt}. Vibrant flat colors, slight halftone texture, confident inked outlines, dynamic composition.',
-                () => this.plugin.settings.ideogram.brandTemplate.prefix,
-                async (value) => {
-                    this.plugin.settings.ideogram.brandTemplate.prefix = value;
-                    await this.plugin.saveSettings();
-                }
-            );
-
-            renderTextarea(
-                'Prompt suffix — Brand Alignment',
-                'What this is for: brand-specific constraints layered on top of the style — exact colors with hex values, recurring motifs, lighting/mood rules that should always hold. Appended after the per-file prompt. Ignored when the prefix already uses {prompt}.',
-                'e.g. Brand Alignment: Include colors {list colors and hex values}, with green and blue being more background ambient colors to keep the feel aligned with brand',
-                () => this.plugin.settings.ideogram.brandTemplate.suffix,
-                async (value) => {
-                    this.plugin.settings.ideogram.brandTemplate.suffix = value;
-                    await this.plugin.saveSettings();
-                }
-            );
-
-            renderTextarea(
-                'Base negative prompt',
-                'What this is for: things you never want in any generated image (text overlays, watermarks, off-brand imagery). Always sent. The per-file image_negative_prompt frontmatter, if set, is appended.',
-                'e.g. no text, no watermarks, no signatures, no captions, no stock-photo aesthetic',
-                () => this.plugin.settings.ideogram.brandTemplate.baseNegativePrompt,
-                async (value) => {
-                    this.plugin.settings.ideogram.brandTemplate.baseNegativePrompt = value;
-                    await this.plugin.saveSettings();
-                }
-            );
-
-            new Setting(containerEl).setName("Defaults").setHeading();
-
-            new Setting(containerEl)
-                .setName('Rendering speed')
-                .setDesc('Cost/quality tradeoff. Quality costs the most.')
-                .addDropdown(dropdown => {
-                    for (const v of IDEOGRAM_RENDERING_SPEEDS) dropdown.addOption(v, v);
-                    dropdown
-                        .setValue(this.plugin.settings.ideogram.defaults.renderingSpeed)
-                        .onChange(async (value) => {
-                            this.plugin.settings.ideogram.defaults.renderingSpeed = value as IdeogramRenderingSpeed;
-                            await this.plugin.saveSettings();
-                        });
-                });
-
-            new Setting(containerEl)
-                .setName('Style type')
-                .setDesc('Coarse style category. Per-file image_style_type frontmatter overrides this.')
-                .addDropdown(dropdown => {
-                    for (const v of IDEOGRAM_STYLE_TYPES) dropdown.addOption(v, v);
-                    dropdown
-                        .setValue(this.plugin.settings.ideogram.defaults.styleType)
-                        .onChange(async (value) => {
-                            this.plugin.settings.ideogram.defaults.styleType = value as IdeogramStyleType;
-                            await this.plugin.saveSettings();
-                        });
-                });
-
-            new Setting(containerEl)
-                .setName('Magic prompt')
-                .setDesc('Whether Ideogram is allowed to rewrite your prompt. Off preserves brand voice exactly.')
-                .addDropdown(dropdown => {
-                    for (const v of IDEOGRAM_MAGIC_PROMPTS) dropdown.addOption(v, v);
-                    dropdown
-                        .setValue(this.plugin.settings.ideogram.defaults.magicPrompt)
-                        .onChange(async (value) => {
-                            this.plugin.settings.ideogram.defaults.magicPrompt = value as IdeogramMagicPrompt;
-                            await this.plugin.saveSettings();
-                        });
-                });
-
-            new Setting(containerEl)
-                .setName('Layerize text after generate')
-                .setDesc('Run the layerize text endpoint to strip incidental text. Modal can override per-call.')
-                .addToggle(toggle => toggle
-                    .setValue(this.plugin.settings.ideogram.layerizeText)
-                    .onChange(async (value) => {
-                        this.plugin.settings.ideogram.layerizeText = value;
-                        await this.plugin.saveSettings();
-                    }));
-        }
-
-        // === IMAGE CACHE ===
-        new Setting(containerEl).setName('Image cache').setHeading();
-        
-        // Image Cache Enable Toggle
-        new Setting(containerEl)
-            .setName('Enable image caching')
-            .setDesc('Cache external images locally to bypass csp restrictions and enable offline viewing')
-            .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.imageCache.enabled)
-                .onChange(async (value) => {
-                    this.plugin.settings.imageCache.enabled = value;
-                    await this.plugin.saveSettings();
-                    this.display(); // Refresh to show/hide dependent settings
-                }));
-
-        if (this.plugin.settings.imageCache.enabled) {
-            // Cache Folder
-            new Setting(containerEl)
-                .setName('Cache folder')
-                .setDesc('Folder path where cached images will be stored (relative to vault root)')
-                .addText(text => text
-                    .setPlaceholder('.Obsidian/plugins/image-gin/cache')
-                    .setValue(this.plugin.settings.imageCache.cacheFolder)
-                    .onChange(async (value) => {
-                        this.plugin.settings.imageCache.cacheFolder = value;
-                        await this.plugin.saveSettings();
-                    }));
-
-            // Max Cache Size
-            new Setting(containerEl)
-                .setName('Max cache size (mb)')
-                .setDesc('Maximum size of the image cache in megabytes')
-                .addText(text => text
-                    .setPlaceholder('100')
-                    .setValue(this.plugin.settings.imageCache.maxCacheSize.toString())
-                    .onChange(async (value) => {
-                        const num = parseInt(value, 10);
-                        if (!isNaN(num) && num > 0) {
-                            this.plugin.settings.imageCache.maxCacheSize = num;
-                            await this.plugin.saveSettings();
-                        }
-                    }));
-
-            // Auto Cleanup
-            new Setting(containerEl)
-                .setName('Auto cleanup')
-                .setDesc('Automatically clean up old cached images')
-                .addToggle(toggle => toggle
-                    .setValue(this.plugin.settings.imageCache.autoCleanup)
-                    .onChange(async (value) => {
-                        this.plugin.settings.imageCache.autoCleanup = value;
-                        await this.plugin.saveSettings();
-                        this.display(); // Refresh to show/hide cleanup days setting
-                    }));
-
-            if (this.plugin.settings.imageCache.autoCleanup) {
-                // Cleanup Days
-                new Setting(containerEl)
-                    .setName('Cleanup days')
-                    .setDesc('Remove cached images older than this many days')
-                    .addText(text => text
-                        .setPlaceholder('30')
-                        .setValue(this.plugin.settings.imageCache.cleanupDays.toString())
-                        .onChange(async (value) => {
-                            const num = parseInt(value, 10);
-                            if (!isNaN(num) && num > 0) {
-                                this.plugin.settings.imageCache.cleanupDays = num;
+        return [
+            {
+                name: 'Recraft API key',
+                desc: 'Your Recraft.ai API key for image generation',
+                control: { type: 'text', key: 'recraftApiKey', placeholder: 'Enter your API key' },
+            },
+            {
+                name: 'Model',
+                desc: 'Select the Recraft model to use for image generation',
+                control: {
+                    type: 'dropdown',
+                    key: 'recraftModelChoice',
+                    options: Object.fromEntries(RECRAFT_MODELS.map(m => [m.id, m.label])),
+                },
+            },
+            // V4+ models take a custom style ID or reference images; V2/V3
+            // also accept a custom style ID (created for that model).
+            {
+                name: 'Custom style ID',
+                desc: 'A Recraft style ID, which only works with the model it was created for. Leave empty to use reference URLs or the curated preset.',
+                control: { type: 'text', key: CUSTOM_STYLE_ID_KEY, placeholder: 'Paste a style ID', defaultValue: '' },
+            },
+            {
+                name: 'Style reference URLs',
+                desc: 'V4+ only. One per line (1–10): an image URL, or the path of an image in your vault. Vault images are sent inline, so nothing needs hosting. Generating with these creates a style each time (+$0.005); use the button below to create it once instead.',
+                control: { type: 'textarea', key: 'recraftStyleReferenceUrls', placeholder: 'Visuals/reference-1.png', rows: 3 },
+            },
+            {
+                name: 'Create style from references',
+                desc: 'Creates a reusable style from the reference URLs above for the selected model, then sets it as the custom style ID. Not available for flash models.',
+                render: (setting) => {
+                    setting.addButton(button => button
+                        .setButtonText('Create style')
+                        .onClick(async () => {
+                            const urls = this.plugin.settings.recraftStyleReferenceUrls
+                                .split('\n')
+                                .map(u => u.trim())
+                                .filter(Boolean);
+                            button.setDisabled(true);
+                            try {
+                                const service = new RecraftImageService(this.plugin.settings, this.app.vault);
+                                const id = await service.createStyle(urls);
+                                const styleSettings = this.plugin.settings.style;
+                                styleSettings.customStyleId = id;
+                                styleSettings.useCustomStyle = true;
                                 await this.plugin.saveSettings();
+                                // Rebuild so the custom style ID row shows the new value.
+                                this.update();
+                                new Notice(`Created Recraft style ${id}`);
+                            } catch (error) {
+                                logger.error('Failed to create Recraft style:', error);
+                                new Notice(`Failed to create style: ${error instanceof Error ? error.message : String(error)}`);
+                            } finally {
+                                button.setDisabled(false);
                             }
                         }));
-            }
-
-            // Clear Cache Button
-            new Setting(containerEl)
-                .setName('Clear cache')
-                .setDesc('Remove all cached images to free up space')
-                .addButton(button => button
-                    .setButtonText('Clear cache')
-                    .setWarning()
-                    .onClick(async () => {
-                        try {
-                            // Import and use the ImageCacheService
-                            const { ImageCacheService } = await import('../services/imageCacheService');
-                            const cacheService = new ImageCacheService(this.app, this.plugin.settings);
-                            await cacheService.clearCache();
-                            new Notice('Image cache cleared successfully');
-                        } catch (error) {
-                            logger.error('Failed to clear cache:', error);
-                            new Notice('Failed to clear image cache');
-                        }
-                    }));
-
-            // Cache Stats
-            const statsDiv = containerEl.createDiv('cache-stats');
-            statsDiv.addClass('image-gin-cache-stats');
-            
-            // Load and display cache stats
-            void this.loadCacheStats(statsDiv);
-        }
-
-        // ─── Drop Gate ──────────────────────────────────────────────
-        new Setting(containerEl).setName("Drag-drop / paste confirmation gate").setHeading();
-        containerEl.createEl('p', {
-            text: 'When enabled, every image dropped or pasted into a note opens a confirmation modal asking where it should go: vault attachments, ImageKit, or Imgur. Built for writers who handle private client imagery and want every image destination to be a deliberate decision.',
-            cls: 'image-gin-settings-blurb',
-        });
-
-        new Setting(containerEl)
-            .setName('Enable drop gate')
-            .setDesc('Intercept image drops and pastes; show the confirmation modal.')
-            .addToggle((t) =>
-                t.setValue(this.plugin.settings.dropGate.enabled).onChange(async (v) => {
-                    this.plugin.settings.dropGate.enabled = v;
-                    await this.plugin.saveSettings();
-                    this.display();
-                })
-            );
-
-        if (this.plugin.settings.dropGate.enabled) {
-            new Setting(containerEl)
-                .setName('Policy mode')
-                .setDesc('When should the gate intercept?')
-                .addDropdown((dd) => {
-                    dd.addOption('always-confirm', 'Always confirm');
-                    dd.addOption('external-only', 'Confirm only if an external destination is enabled');
-                    dd.setValue(this.plugin.settings.dropGate.policyMode);
-                    dd.onChange(async (v) => {
-                        this.plugin.settings.dropGate.policyMode = v as DropGatePolicyMode;
-                        await this.plugin.saveSettings();
-                    });
-                });
-
-            new Setting(containerEl)
-                .setName('Default destination')
-                .setDesc('Pre-selected when the modal opens.')
-                .addDropdown((dd) => {
-                    dd.addOption('vault', 'Vault attachments');
-                    dd.addOption('imagekit', 'ImageKit (private CDN)');
-                    dd.addOption('imgur', 'Imgur (public CDN)');
-                    dd.setValue(this.plugin.settings.dropGate.defaultDestination);
-                    dd.onChange(async (v) => {
-                        this.plugin.settings.dropGate.defaultDestination =
-                            v as DropGateSettings['defaultDestination'];
-                        await this.plugin.saveSettings();
-                    });
-                });
-
-            new Setting(containerEl)
-                .setName('Show "remember for session" checkbox')
-                .setDesc('Lets the user skip the modal for the current note. Never persists across Obsidian restarts.')
-                .addToggle((t) =>
-                    t.setValue(this.plugin.settings.dropGate.rememberSessionChoice).onChange(async (v) => {
-                        this.plugin.settings.dropGate.rememberSessionChoice = v;
-                        await this.plugin.saveSettings();
-                    })
-                );
-
-            new Setting(containerEl)
-                .setName('ImageKit folder for drop-gate uploads')
-                .setDesc(
-                    `Folder path on ImageKit where dropped/pasted images go. Supports {YYYY}, {MM}, and {DD}. Leave blank to use the main ImageKit upload folder ("${this.plugin.settings.imageKit.uploadFolder || '(unset)'}").`
-                )
-                .addText((t) => {
-                    t.setPlaceholder('/uploads/lossless/drops');
-                    t.setValue(this.plugin.settings.dropGate.imageKitFolder).onChange(async (v) => {
-                        this.plugin.settings.dropGate.imageKitFolder = v;
-                        await this.plugin.saveSettings();
-                    });
-                });
-        }
-
-        // ─── Imgur (public CDN) ─────────────────────────────────────
-        new Setting(containerEl).setName("Imgur (public CDN)").setHeading();
-
-        new Setting(containerEl)
-            .setName('Enable Imgur destination')
-            .setDesc('Anonymous upload via a client ID. Public — use for non-sensitive imagery only.')
-            .addToggle((t) =>
-                t.setValue(this.plugin.settings.imgur.enabled).onChange(async (v) => {
-                    this.plugin.settings.imgur.enabled = v;
-                    await this.plugin.saveSettings();
-                    this.display();
-                })
-            );
-
-        if (this.plugin.settings.imgur.enabled) {
-            new Setting(containerEl)
-                .setName('Imgur client ID')
-                .setDesc('Anonymous client ID from Imgur.com/account → applications. Not the secret.')
-                .addText((t) => {
-                    t.inputEl.type = 'password';
-                    t.setValue(this.plugin.settings.imgur.clientId).onChange(async (v) => {
-                        this.plugin.settings.imgur.clientId = v;
-                        await this.plugin.saveSettings();
-                    });
-                });
-        }
+                },
+            },
+            {
+                name: 'Style match',
+                desc: 'V4+ only. How closely to follow the style.',
+                control: {
+                    type: 'dropdown',
+                    key: 'recraftStyleMatch',
+                    options: { '': 'Style default', flexible: 'Flexible', precise: 'Precise' },
+                },
+            },
+            {
+                name: 'Preset style',
+                desc: 'V3/V2 models only. The curated Recraft style used when no custom style ID is set.',
+                control: { type: 'dropdown', key: 'style.presetStyle.base', options: baseStyleOptions },
+            },
+            {
+                name: 'Preset substyle',
+                desc: 'V3/V2 models only. Pick a substyle that belongs to the preset style above, or none.',
+                control: { type: 'dropdown', key: 'style.presetStyle.substyle', options: substyleOptions, defaultValue: '' },
+            },
+            {
+                name: 'Brand colors',
+                desc: 'Hex colors Recraft should prefer, separated by commas or new lines. Styles set the technique; this keeps the palette consistent across images.',
+                control: { type: 'textarea', key: 'recraftBrandColors', placeholder: 'Amber #fbbf24, orange #f97316, ink #0a0c10', rows: 2 },
+            },
+            {
+                name: 'Background color',
+                desc: 'Optional hex color for the image background.',
+                control: { type: 'text', key: 'recraftBackgroundColor', placeholder: 'Cream #f6f1e4' },
+            },
+            {
+                name: 'Share one seed across sizes',
+                desc: 'Every size in a run uses the same random seed, so the set looks like one family.',
+                control: { type: 'toggle', key: 'recraftShareSeedAcrossSizes' },
+            },
+            {
+                name: 'Image format',
+                desc: 'Raster output format. Vector models ignore this setting.',
+                control: { type: 'dropdown', key: 'recraftImageFormat', options: { webp: 'WebP', png: 'PNG' } },
+            },
+            {
+                name: 'Recraft API base URL',
+                desc: 'Recraft API base URL (change only if using custom endpoint)',
+                control: { type: 'text', key: 'recraftBaseUrl', placeholder: 'https://external.api.recraft.ai/v1/images/generations' },
+            },
+            {
+                name: 'Image output folder',
+                desc: 'Folder path where generated images will be saved. Use absolute path (e.g., /users/username/path) or relative to vault root',
+                control: { type: 'folder', key: 'imageOutputFolder', placeholder: 'Assets/ImageGin' },
+            },
+        ];
     }
 
-    private async loadCacheStats(container: HTMLElement) {
-        container.empty();
-        try {
-            const { ImageCacheService } = await import('../services/imageCacheService');
-            const cacheService = new ImageCacheService(this.app, this.plugin.settings);
-            const stats = cacheService.getCacheStats();
+    private sizePresetItems(): SettingGroupItem[] {
+        return this.plugin.settings.imageSizes.map((size): SettingGroupItem => ({
+            name: size.label.trim() || 'Untitled size',
+            aliases: [size.yamlKey],
+            render: (setting) => {
+                setting.setClass('image-size-setting');
+                setting.addText(text => text
+                    .setPlaceholder('Label')
+                    .setValue(size.label)
+                    .onChange(async (value) => {
+                        size.label = value;
+                        await this.plugin.saveSettings();
+                    }));
+                setting.addText(text => text
+                    .setPlaceholder('YAML_key')
+                    .setValue(size.yamlKey)
+                    .onChange(async (value) => {
+                        size.yamlKey = value;
+                        await this.plugin.saveSettings();
+                    }));
+                setting.addText(text => {
+                    text.inputEl.title = VALID_DIMENSIONS;
+                    text
+                        .setPlaceholder('Width')
+                        .setValue(size.width.toString())
+                        .onChange(async (value) => {
+                            const num = parseInt(value, 10);
+                            if (!isNaN(num)) {
+                                size.width = num;
+                                await this.plugin.saveSettings();
+                            }
+                        });
+                });
+                setting.addText(text => {
+                    text.inputEl.title = VALID_DIMENSIONS;
+                    text
+                        .setPlaceholder('Height')
+                        .setValue(size.height.toString())
+                        .onChange(async (value) => {
+                            const num = parseInt(value, 10);
+                            if (!isNaN(num)) {
+                                size.height = num;
+                                await this.plugin.saveSettings();
+                            }
+                        });
+                });
+            },
+        }));
+    }
 
-            const title = container.createDiv();
-            title.addClass('image-gin-cache-stats-title');
-            title.setText('Cache statistics');
-            container.createDiv({ text: `Files: ${stats.totalImages}` });
-            container.createDiv({ text: `Size: ${stats.cacheSize}` });
-        } catch (error) {
-            logger.error('Failed to load cache stats:', error);
-            const errEl = container.createDiv({ text: 'Failed to load cache statistics' });
-            errEl.addClass('image-gin-error-text');
-        }
+    private imageKitItems(): SettingGroupItem[] {
+        const enabled = () => this.plugin.settings.imageKit.enabled;
+        return [
+            {
+                name: 'Enable ImageKit CDN',
+                desc: 'Upload generated images to ImageKit CDN for optimized delivery',
+                control: { type: 'toggle', key: 'imageKit.enabled' },
+            },
+            {
+                name: 'ImageKit public key',
+                desc: 'Your ImageKit public key (found in ImageKit dashboard)',
+                visible: enabled,
+                control: { type: 'text', key: 'imageKit.publicKey', placeholder: 'Public_key_here' },
+            },
+            {
+                name: 'ImageKit private key',
+                desc: 'Your ImageKit private key (keep this secure!)',
+                visible: enabled,
+                control: { type: 'text', key: 'imageKit.privateKey', placeholder: 'Private_key_here' },
+            },
+            {
+                name: 'ImageKit URL endpoint',
+                desc: 'Your ImageKit CDN URL endpoint for serving images',
+                visible: enabled,
+                control: { type: 'text', key: 'imageKit.urlEndpoint', placeholder: 'https://ik.imagekit.io/your-imagekit-id' },
+            },
+            {
+                name: 'ImageKit upload endpoint',
+                desc: 'ImageKit API endpoint for uploading files',
+                visible: enabled,
+                control: { type: 'text', key: 'imageKit.uploadEndpoint', placeholder: 'https://upload.imagekit.io/api/v1/files/upload' },
+            },
+            {
+                name: 'ImageKit upload folder',
+                desc: 'Folder path in ImageKit where images will be uploaded. {YYYY}, {MM}, and {DD} are filled in with the upload date, e.g. /images/{YYYY}-{MM}.',
+                visible: enabled,
+                control: { type: 'text', key: 'imageKit.uploadFolder', placeholder: '/images/{YYYY}-{MM}' },
+            },
+            {
+                name: 'Remove local files after upload',
+                desc: 'Delete local image files after successful upload to ImageKit',
+                visible: enabled,
+                control: { type: 'toggle', key: 'imageKit.removeLocalFiles' },
+            },
+            {
+                name: 'Convert to WebP',
+                desc: 'Convert uploaded images to WebP format for better optimization',
+                visible: enabled,
+                control: { type: 'toggle', key: 'imageKit.convertToWebp' },
+            },
+        ];
+    }
+
+    private magnificItems(): SettingGroupItem[] {
+        const enabled = () => this.plugin.settings.magnific.enabled;
+        return [
+            {
+                name: 'Enable Magnific integration',
+                desc: 'Enable Magnific image search functionality',
+                control: { type: 'toggle', key: 'magnific.enabled' },
+            },
+            {
+                name: 'Magnific API key',
+                desc: 'Your Magnific API key for accessing the image search service',
+                visible: enabled,
+                control: { type: 'text', key: 'magnific.apiKey', placeholder: 'Enter your Magnific API key' },
+            },
+            {
+                name: 'Default license type',
+                desc: 'Default license type for Magnific image searches',
+                visible: enabled,
+                control: { type: 'dropdown', key: 'magnific.defaultLicense', options: { freemium: 'Freemium', premium: 'Premium' } },
+            },
+            {
+                name: 'Default image count',
+                desc: 'Default number of images to fetch in search results (1-50)',
+                visible: enabled,
+                control: {
+                    type: 'number',
+                    key: 'magnific.defaultImageCount',
+                    min: 1,
+                    max: 50,
+                    step: 1,
+                    validate: (value) =>
+                        Number.isInteger(value) && value >= 1 && value <= 50 ? undefined : 'Enter a whole number from 1 to 50.',
+                },
+            },
+        ];
+    }
+
+    private ideogramItems(): SettingGroupItem[] {
+        const enabled = () => this.plugin.settings.ideogram.enabled;
+        return [
+            {
+                name: 'Enable Ideogram integration',
+                desc: 'Generate images via Ideogram v3 with brand-template prompt wrapping',
+                control: { type: 'toggle', key: 'ideogram.enabled' },
+            },
+            {
+                name: 'Ideogram API key',
+                desc: 'Your Ideogram API key (sent as the API-Key header)',
+                visible: enabled,
+                control: { type: 'text', key: 'ideogram.apiKey', placeholder: 'Enter your Ideogram API key' },
+            },
+            {
+                name: 'Brand template',
+                desc: 'Prepends/appends fixed text to every per-file prompt so all generated images share a consistent style. The per-file prompt itself is the file\'s image_prompt frontmatter (or whatever you type in the modal). There are two assembly patterns. '
+                    + '1. Bookends: leave both fields as plain text. The prefix goes before the per-file prompt and the suffix goes after (prefix + per-file prompt + suffix). Good when your style guide naturally brackets the subject (e.g. prefix = "Editorial illustration of:", suffix = "in our house style, soft pastel background"). '
+                    + '2. Slot insertion: include the literal token {prompt} somewhere in the prefix. The per-file prompt is substituted at that exact position and the suffix is ignored. Good when the per-file prompt needs to land mid-sentence (e.g. prefix = "Editorial illustration in our house style: {prompt}, on a soft pastel background"). '
+                    + 'Use the modal\'s resolved prompt preview to see exactly what gets sent to Ideogram before generating.',
+                visible: enabled,
+            },
+            {
+                name: 'Prompt prefix — Style Notes',
+                desc: 'What this is for: the visual style every image should share — illustration approach, palette mood, line/texture qualities, composition feel. Plain text → prepended. Contains {prompt} → the per-file subject is substituted at that exact position and the suffix is ignored.',
+                visible: enabled,
+                control: {
+                    type: 'textarea',
+                    key: 'ideogram.brandTemplate.prefix',
+                    rows: 3,
+                    placeholder: 'e.g. Style Notes: Comic-book editorial illustration in a clean modern style: {prompt}. Vibrant flat colors, slight halftone texture, confident inked outlines, dynamic composition.',
+                },
+            },
+            {
+                name: 'Prompt suffix — Brand Alignment',
+                desc: 'What this is for: brand-specific constraints layered on top of the style — exact colors with hex values, recurring motifs, lighting/mood rules that should always hold. Appended after the per-file prompt. Ignored when the prefix already uses {prompt}.',
+                visible: enabled,
+                control: {
+                    type: 'textarea',
+                    key: 'ideogram.brandTemplate.suffix',
+                    rows: 3,
+                    placeholder: 'e.g. Brand Alignment: Include colors {list colors and hex values}, with green and blue being more background ambient colors to keep the feel aligned with brand',
+                },
+            },
+            {
+                name: 'Base negative prompt',
+                desc: 'What this is for: things you never want in any generated image (text overlays, watermarks, off-brand imagery). Always sent. The per-file image_negative_prompt frontmatter, if set, is appended.',
+                visible: enabled,
+                control: {
+                    type: 'textarea',
+                    key: 'ideogram.brandTemplate.baseNegativePrompt',
+                    rows: 3,
+                    placeholder: 'e.g. no text, no watermarks, no signatures, no captions, no stock-photo aesthetic',
+                },
+            },
+            {
+                name: 'Rendering speed',
+                desc: 'Cost/quality tradeoff. Quality costs the most.',
+                visible: enabled,
+                control: { type: 'dropdown', key: 'ideogram.defaults.renderingSpeed', options: optionsFrom(IDEOGRAM_RENDERING_SPEEDS) },
+            },
+            {
+                name: 'Style type',
+                desc: 'Coarse style category. Per-file image_style_type frontmatter overrides this.',
+                visible: enabled,
+                control: { type: 'dropdown', key: 'ideogram.defaults.styleType', options: optionsFrom(IDEOGRAM_STYLE_TYPES) },
+            },
+            {
+                name: 'Magic prompt',
+                desc: 'Whether Ideogram is allowed to rewrite your prompt. Off preserves brand voice exactly.',
+                visible: enabled,
+                control: { type: 'dropdown', key: 'ideogram.defaults.magicPrompt', options: optionsFrom(IDEOGRAM_MAGIC_PROMPTS) },
+            },
+            {
+                name: 'Layerize text after generate',
+                desc: 'Run the layerize text endpoint to strip incidental text. Modal can override per-call.',
+                visible: enabled,
+                control: { type: 'toggle', key: 'ideogram.layerizeText' },
+            },
+        ];
+    }
+
+    private imageCacheItems(): SettingGroupItem[] {
+        const enabled = () => this.plugin.settings.imageCache.enabled;
+        return [
+            {
+                name: 'Enable image caching',
+                desc: 'Cache external images locally to bypass csp restrictions and enable offline viewing',
+                control: { type: 'toggle', key: 'imageCache.enabled' },
+            },
+            {
+                name: 'Cache folder',
+                desc: 'Folder path where cached images will be stored (relative to vault root)',
+                visible: enabled,
+                control: { type: 'text', key: 'imageCache.cacheFolder', placeholder: '.Obsidian/plugins/image-gin/cache' },
+            },
+            {
+                name: 'Max cache size (mb)',
+                desc: 'Maximum size of the image cache in megabytes',
+                visible: enabled,
+                control: { type: 'number', key: 'imageCache.maxCacheSize', placeholder: '100', min: 1, step: 1, validate: wholeNumberAtLeastOne },
+            },
+            {
+                name: 'Auto cleanup',
+                desc: 'Automatically clean up old cached images',
+                visible: enabled,
+                control: { type: 'toggle', key: 'imageCache.autoCleanup' },
+            },
+            {
+                name: 'Cleanup days',
+                desc: 'Remove cached images older than this many days',
+                visible: () => enabled() && this.plugin.settings.imageCache.autoCleanup,
+                control: { type: 'number', key: 'imageCache.cleanupDays', placeholder: '30', min: 1, step: 1, validate: wholeNumberAtLeastOne },
+            },
+            {
+                name: 'Clear cache',
+                desc: 'Remove all cached images to free up space',
+                visible: enabled,
+                render: (setting) => {
+                    setting.addButton(button => button
+                        .setButtonText('Clear cache')
+                        .setDestructive()
+                        .onClick(async () => {
+                            try {
+                                // Lazy import keeps the cache service out of the settings UI's load path.
+                                const { ImageCacheService } = await import('../services/imageCacheService');
+                                const cacheService = new ImageCacheService(this.app, this.plugin.settings);
+                                await cacheService.clearCache();
+                                new Notice('Image cache cleared successfully');
+                                this.update(); // refresh the statistics row
+                            } catch (error) {
+                                logger.error('Failed to clear cache:', error);
+                                new Notice('Failed to clear image cache');
+                            }
+                        }));
+                },
+            },
+            {
+                name: 'Cache statistics',
+                desc: 'Loading…',
+                visible: enabled,
+                searchable: false,
+                render: (setting) => {
+                    void (async () => {
+                        try {
+                            const { ImageCacheService } = await import('../services/imageCacheService');
+                            const cacheService = new ImageCacheService(this.app, this.plugin.settings);
+                            const stats = cacheService.getCacheStats();
+                            setting.setDesc(`Files: ${stats.totalImages} · Size: ${stats.cacheSize}`);
+                        } catch (error) {
+                            logger.error('Failed to load cache stats:', error);
+                            setting.setDesc('Failed to load cache statistics');
+                        }
+                    })();
+                },
+            },
+        ];
+    }
+
+    private dropGateItems(): SettingGroupItem[] {
+        const enabled = () => this.plugin.settings.dropGate.enabled;
+        return [
+            {
+                name: 'Enable drop gate',
+                desc: 'Intercept image drops and pastes; show the confirmation modal. When enabled, every image dropped or pasted into a note opens a confirmation modal asking where it should go: vault attachments, ImageKit, or Imgur. Built for writers who handle private client imagery and want every image destination to be a deliberate decision.',
+                control: { type: 'toggle', key: 'dropGate.enabled' },
+            },
+            {
+                name: 'Policy mode',
+                desc: 'When should the gate intercept?',
+                visible: enabled,
+                control: {
+                    type: 'dropdown',
+                    key: 'dropGate.policyMode',
+                    options: {
+                        'always-confirm': 'Always confirm',
+                        'external-only': 'Confirm only if an external destination is enabled',
+                    },
+                },
+            },
+            {
+                name: 'Default destination',
+                desc: 'Pre-selected when the modal opens.',
+                visible: enabled,
+                control: {
+                    type: 'dropdown',
+                    key: 'dropGate.defaultDestination',
+                    options: {
+                        vault: 'Vault attachments',
+                        imagekit: 'ImageKit (private CDN)',
+                        imgur: 'Imgur (public CDN)',
+                    },
+                },
+            },
+            {
+                name: 'Show "remember for session" checkbox',
+                desc: 'Lets the user skip the modal for the current note. Never persists across Obsidian restarts.',
+                visible: enabled,
+                control: { type: 'toggle', key: 'dropGate.rememberSessionChoice' },
+            },
+            {
+                name: 'ImageKit folder for drop-gate uploads',
+                desc: `Folder path on ImageKit where dropped/pasted images go. Supports {YYYY}, {MM}, and {DD}. Leave blank to use the main ImageKit upload folder ("${this.plugin.settings.imageKit.uploadFolder || '(unset)'}").`,
+                visible: enabled,
+                control: { type: 'text', key: 'dropGate.imageKitFolder', placeholder: '/uploads/lossless/drops' },
+            },
+        ];
+    }
+
+    private imgurItems(): SettingGroupItem[] {
+        return [
+            {
+                name: 'Enable Imgur destination',
+                desc: 'Anonymous upload via a client ID. Public — use for non-sensitive imagery only.',
+                control: { type: 'toggle', key: 'imgur.enabled' },
+            },
+            {
+                // A render row so the input stays masked, as in 0.2.x; the
+                // declarative text control has no password mode.
+                name: 'Imgur client ID',
+                desc: 'Anonymous client ID from Imgur.com/account → applications. Not the secret.',
+                visible: () => this.plugin.settings.imgur.enabled,
+                render: (setting) => {
+                    setting.addText(text => {
+                        text.inputEl.type = 'password';
+                        text.setValue(this.plugin.settings.imgur.clientId).onChange(async (value) => {
+                            this.plugin.settings.imgur.clientId = value;
+                            await this.plugin.saveSettings();
+                        });
+                    });
+                },
+            },
+        ];
     }
 }

@@ -46,7 +46,18 @@ export class Setting {
 }
 export class PluginSettingTab {
     containerEl: unknown = chain();
+    /** Count of update() calls, so tests can assert a rebuild was requested. */
+    updates = 0;
     constructor(public app: unknown, public plugin: unknown) {}
+    getSettingDefinitions(): unknown[] { return []; }
+    update(): void { this.updates++; }
+    refreshDomState(): void {}
+    getControlValue(key: string): unknown {
+        return (this.plugin as { settings: Record<string, unknown> }).settings[key];
+    }
+    setControlValue(key: string, value: unknown): void | Promise<void> {
+        (this.plugin as { settings: Record<string, unknown> }).settings[key] = value;
+    }
 }
 export class TFile {}
 export function normalizePath(p: string): string {

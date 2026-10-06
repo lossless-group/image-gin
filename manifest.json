@@ -1,8 +1,8 @@
 {
 	"id": "image-gin",
 	"name": "Image Gin",
-	"version": "0.2.3",
-	"minAppVersion": "1.8.10",
+	"version": "0.3.0",
+	"minAppVersion": "1.13.0",
 	"description": "Generate AI images, search stock images, and upload to ImageKit CDN.",
 	"author": "The Lossless Group",
 	"authorUrl": "https://lossless.group",
