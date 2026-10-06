@@ -36,9 +36,50 @@ export class Notice {
 }
 
 export class Modal {}
-export class Setting {}
-export class PluginSettingTab {}
+export class Setting {
+    constructor(_containerEl: unknown) {
+        const names = (globalThis as { __settingNames?: string[] }).__settingNames;
+        return chain((prop, args) => {
+            if (prop === 'setName' && names) names.push(String(args[0]));
+        }) as Setting;
+    }
+}
+export class PluginSettingTab {
+    containerEl: unknown = chain();
+    constructor(public app: unknown, public plugin: unknown) {}
+}
 export class TFile {}
 export function normalizePath(p: string): string {
     return p.replace(/\/+/g, '/').replace(/^\/|\/$/g, '');
 }
+
+// --- Chainable UI stand-ins for rendering the settings tab under Node ----
+// Every method returns the same proxy; callbacks handed to addText/addToggle
+// etc. are invoked with a component proxy. Setting names are recorded in
+// globalThis.__settingNames so tests can assert which rows rendered.
+
+function chain(onCall?: (prop: string, args: unknown[]) => void): unknown {
+    const target = function () { /* callable */ };
+    const proxy: unknown = new Proxy(target, {
+        get(_t, prop) {
+            if (prop === 'then') return undefined;
+            if (prop === 'inputEl' || prop === 'settingEl' || prop === 'controlEl' || prop === 'buttonEl') return chain();
+            return (...args: unknown[]) => {
+                onCall?.(String(prop), args);
+                for (const a of args) if (typeof a === 'function' && !String(prop).startsWith('on') && prop !== 'addEventListener') (a as (c: unknown) => void)(chain());
+                return proxy;
+            };
+        },
+        set() { return true; },
+    });
+    return proxy;
+}
+
+export function makeStubElement(): unknown {
+    return chain();
+}
+
+export class PluginSettingTabStub {}
+
+export const SettingNames: string[] = [];
+(globalThis as { __settingNames?: string[] }).__settingNames = SettingNames;
