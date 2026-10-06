@@ -12,7 +12,7 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 5.5
-at_semantic_version: 0.0.0.1
+at_semantic_version: 0.0.1.0
 site_uuid: 3b632f65-be9e-4de4-8d54-57b670ac8df0
 hex_code: ojnlk5
 tags:
@@ -130,6 +130,27 @@ Our presets would break on V4.1 as exact pixels: `2048x1024` is a V3 size; V4.1'
 - [ ] Try **V4.1 Flash** ($0.007) for cheap iteration.
 - [ ] Confirm the log shows `Recraft responded HTTP 200`, `credits`, `Downloaded … bytes`, and `Saved Recraft image`.
 - [ ] Pick **V4 Styles** with no style set. Expect an immediate notice and no charge.
+
+## The house style, recovered (2026-10-06)
+
+The first V4.1-era run worked mechanically but looked wrong. Four sizes came back in four unrelated palettes with a grainy screen-print texture. The V3 curated preset (`digital_illustration` / `graphic_intensity`) fixes the drawing technique, not the colors, and each size got its own random seed.
+
+The Lossless house look came from a Recraft **custom style** created in 2025. Its ID was never committed or saved anywhere we could find; it lived only in plugin settings. Twelve images made with it survive in `~/assets/Recraft-Generated/`, from 2025-06-07 and 2025-06-08: a banner and a portrait each for six Essays, Specs, and Issue-Resolution docs. They share:
+
+- **Drawing:** flat vector-style illustration with no grain
+- **Background:** white or near-white, with a soft organic blob behind the subject
+- **Palette:** teal and petrol blue, slate gray, light cyan, orange and coral accents, warm brown wood
+
+We rebuilt the style with Recraft V4 Styles. All 6 banners and 4 of the portraits, downscaled to 1024 px, were sent as data URLs to `POST /v1/styles` (10 is the maximum). A test banner generated with the new style matched the originals.
+
+| | |
+|---|---|
+| Style ID | `8097b0bb-50a7-4f6a-ae32-248decdf6640` |
+| Bound to model | `recraftv4_styles` (a style only works with the model it was created for) |
+| Created | 2026-10-06, 5 credits |
+| Source images | `~/assets/Recraft-Generated/**/*.jpg` (keep these; they are the recipe) |
+
+**Settings that reproduce the house look:** Model **V4 Styles**, Custom style ID as above, Brand colors empty (the style carries the palette), Share one seed across sizes **on**.
 
 ## Follow-on: provider recipes in the vault (`zz-cf-lib/`)
 
