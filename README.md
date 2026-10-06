@@ -37,6 +37,14 @@ A powerful Obsidian plugin that brings AI image generation, stock-image search, 
 
 # Releases
 
+**0.3.0** — 2026-10-06 · requires Obsidian 1.13
+- Recraft V4.1 and the full current model lineup, including V4 Styles.
+- House styles: build a Recraft style from images in your vault with one click; brand colors, background color, and one shared seed per run keep a set consistent.
+- Settings rebuilt on Obsidian's declarative API: every setting searchable, and fixes the Obsidian 1.14 bug that hid half the settings tab.
+- ImageKit upload folders accept `{YYYY}`, `{MM}`, `{DD}`.
+- Fixed: Recraft generation freezing Obsidian; custom size keys (e.g. `banner_image_taller`) skipped by "Convert local images to remote"; every image saved as `.png`.
+- Full notes: [`changelog/releases/0.3.0.md`](changelog/releases/0.3.0.md).
+
 **0.1.1** — 2026-05-03
 - Added Ideogram v3 as a second AI generation provider.
 - Brand Template prompt wrapping (prefix / suffix / base negative prompt) with bookend and `{prompt}`-slot-insertion modes.
@@ -54,7 +62,7 @@ A powerful Obsidian plugin that brings AI image generation, stock-image search, 
 # 🚀 Getting Started
 
 ### Prerequisites
-- [Obsidian](https://obsidian.md) (v1.8.10 or later)
+- [Obsidian](https://obsidian.md) (v1.13.0 or later; Image Gin 0.3.0 uses Obsidian's declarative settings API)
 - Node.js (v18 or later)
 - pnpm (recommended) or npm
 

@@ -12,10 +12,13 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 5.5
-at_semantic_version: 0.0.0.1
+at_semantic_version: 0.0.1.0
 site_uuid: ffea67be-36cb-44cc-a656-9d1be9e79efb
 hex_code: d8286t
-status: Implementing
+status: Shipped
+date_first_published: 2026-10-06
+date_work_completed: 2026-10-06
+post_ship_note: "Shipped as d74497a. The acceptance spec passed first time; the only surprise was that the minAppVersion bump is a lint precondition, not a follow-up (obsidianmd/no-unsupported-api). Open: confirm in Obsidian that update() repaints the open tab when a toggle reveals rows."
 tags:
   - Plan
   - Obsidian-Plugin

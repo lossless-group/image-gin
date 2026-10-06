@@ -21,7 +21,8 @@ tags:
   - Recraft
   - Image-Generation
   - Obsidian-Plugin
-status: Implementing
+status: Shipped
+date_first_published: 2026-10-06
 ---
 
 # Issue: Recraft Generation Froze Obsidian, and the V4.1 Upgrade
@@ -184,7 +185,7 @@ response:
   credits: credits
 ```
 
-The plugin would supply a generic request runner (`requestUrl`, `throw: false`, token substitution, a JSON-path pick, and the raw-buffer save path above). API keys would stay in plugin settings, keyed by name, never in the vault. A new or revised provider would become a markdown edit instead of a release.
+Image Gin must keep working on its own (content-farm is a pseudomonorepo, and every plugin ships independently to the Obsidian marketplace). So the built-in Recraft and Ideogram recipes stay **bundled in the plugin** as the defaults, and vault files only override or add to them. That is the same missing-file fallback Perplexed uses for its preambles. The plugin would supply a generic request runner (`requestUrl`, `throw: false`, token substitution, a JSON-path pick, and the raw-buffer save path above). API keys would stay in plugin settings, keyed by name, never in the vault. A new or revised provider would become a markdown edit instead of a release.
 
 Prefer `zz-cf-lib/` over `z_utils/`. `z_utils/` holds Templater scripts and templates. `zz-cf-lib/` is already the content-farm plugins' runtime library. This belongs in its own `explorations/` doc before any code.
 
