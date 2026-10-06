@@ -713,9 +713,9 @@ export class ImageGinSettingTab extends PluginSettingTab {
         // ImageKit Upload Folder
         new Setting(containerEl)
             .setName('ImageKit upload folder')
-            .setDesc('Folder path in ImageKit where images will be uploaded')
+            .setDesc('Folder path in ImageKit where images will be uploaded. {YYYY}, {MM}, and {DD} are filled in with the upload date, e.g. /images/{YYYY}-{MM}.')
             .addText(text => text
-                .setPlaceholder('/uploads/lossless/images')
+                .setPlaceholder('/images/{YYYY}-{MM}')
                 .setValue(this.plugin.settings.imageKit.uploadFolder)
                 .onChange(async (value) => {
                     this.plugin.settings.imageKit.uploadFolder = value;
@@ -1109,7 +1109,7 @@ export class ImageGinSettingTab extends PluginSettingTab {
             new Setting(containerEl)
                 .setName('ImageKit folder for drop-gate uploads')
                 .setDesc(
-                    `Folder path on ImageKit where dropped/pasted images go. Leave blank to use the main ImageKit upload folder ("${this.plugin.settings.imageKit.uploadFolder || '(unset)'}").`
+                    `Folder path on ImageKit where dropped/pasted images go. Supports {YYYY}, {MM}, and {DD}. Leave blank to use the main ImageKit upload folder ("${this.plugin.settings.imageKit.uploadFolder || '(unset)'}").`
                 )
                 .addText((t) => {
                     t.setPlaceholder('/uploads/lossless/drops');

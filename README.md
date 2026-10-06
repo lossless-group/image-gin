@@ -88,7 +88,7 @@ Each integration is independently toggleable. Enable only the ones you need.
 1. (Optional) Recraft — get an API key at [recraft.ai](https://recraft.ai) for AI image generation with custom-trained brand styles.
 2. (Optional) Ideogram — get an API key at [ideogram.ai](https://ideogram.ai) for AI image generation with per-call style controls and Layerize-Text post-processing.
 3. (Optional) Magnific — get an API key from the [Magnific developer dashboard](https://www.magnific.com/developers/dashboard/api-key) for stock-image search.
-4. (Optional) ImageKit — get a public/private key pair from the [ImageKit dashboard](https://imagekit.io) for CDN upload and WebP conversion.
+4. (Optional) ImageKit — get a public/private key pair from the [ImageKit dashboard](https://imagekit.io) for CDN upload and WebP conversion. The upload folder can include `{YYYY}`, `{MM}`, and `{DD}` (e.g. `/images/{YYYY}-{MM}`), which are filled in with the upload date so files sort by month automatically.
 5. Open Obsidian, go to Settings → Community Plugins, find "Image Gin" in the list, and enable it.
 6. Click the gear icon to configure your API keys, output folder, image-size presets, and (for Ideogram) your Brand Template prefix/suffix/base-negative-prompt.
 

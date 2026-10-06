@@ -1,7 +1,7 @@
 import { Notice } from 'obsidian';
 import type { DropGateContext, DropGateDestination } from './types';
 import type { ImageGinSettings } from '../settings/settings';
-import { ImageKitService } from '../services/imagekitService';
+import { ImageKitService, resolveFolderTokens } from '../services/imagekitService';
 import { fileNameFor } from '../utils/dropGateEvents';
 
 /**
@@ -66,7 +66,6 @@ export class ImageKitDestination implements DropGateDestination {
     private resolveFolder(): string {
         const s = this.getSettings();
         const override = s.dropGate.imageKitFolder.trim();
-        if (override) return override;
-        return s.imageKit.uploadFolder.trim();
+        return resolveFolderTokens(override || s.imageKit.uploadFolder.trim());
     }
 }

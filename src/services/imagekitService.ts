@@ -18,6 +18,19 @@ export interface ImageKitUploadResult {
     fileType: string;
 }
 
+/**
+ * Fill date placeholders in an ImageKit folder at upload time, so a folder
+ * like "/Image-Gin/{YYYY}-{MM}" files each upload under the current month
+ * instead of whatever month the setting was typed in. Case-insensitive.
+ */
+export function resolveFolderTokens(folder: string, now: Date = new Date()): string {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return folder
+        .replace(/\{YYYY\}/gi, String(now.getFullYear()))
+        .replace(/\{MM\}/gi, pad(now.getMonth() + 1))
+        .replace(/\{DD\}/gi, pad(now.getDate()));
+}
+
 export class ImageKitService {
     private settings: ImageGinSettings;
 
@@ -59,7 +72,7 @@ export class ImageKitService {
         formFields.push(finalFileName);
         
         // Add folder field
-        const uploadFolder = folder || this.settings.imageKit.uploadFolder;
+        const uploadFolder = resolveFolderTokens(folder || this.settings.imageKit.uploadFolder);
         if (uploadFolder) {
             formFields.push(`--${boundary}`);
             formFields.push('Content-Disposition: form-data; name="folder"');
