@@ -5,7 +5,8 @@ created: 2026-05-10
 applies_to: image-gin Obsidian plugin (PR obsidianmd/obsidian-releases#12524)
 authors:
   - Michael Staton
-augmented_with: Claude Code (Opus 4.7, 1M context)
+augmented_with:
+  - Claude Code (Opus 4.7, 1M context)
 related:
   - 2026-05-03_Assuring-Obsidian-Community-Plugin-Requirements.md
   - ../../../../context-v/issues/Obsidian-Review-Bot-Feedback-on-Perplexed-Submission.md
@@ -14,6 +15,7 @@ last_bot_scan_commit: cfbceba2992a2da62ba87eb6346e3e44cbfd945d
 site_uuid: 6514eafd-80a0-4034-ba83-54c35c63d424
 hex_code: dy2ql3
 date_created: 2026-05-10
+date_modified: 2026-08-18
 lede: "Local lint is clean but the bot flags 49 sentence-case hits — its default brand list has no Magnific or Ideogram, so they get a /skip reply."
 summary: "The last cleanup round before image-gin's approval. Explains the two reasons local lint and the server-side bot disagree (our brands allowlist versus the plugin's DEFAULT_BRANDS, and the recommended config turning require-await off), triages the 49 findings into genuine violations versus brand-name false positives, and stages three semantically-clean commits plus a drafted /skip comment. Reusable as the template for any bot round where local lint passes and the server does not."
 publish: true

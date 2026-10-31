@@ -5,12 +5,14 @@ created: 2026-05-03
 applies_to: image-gin Obsidian plugin
 authors:
   - Michael Staton
-augmented_with: Claude Code (Opus 4.7, 1M context)
+augmented_with:
+  - Claude Code (Opus 4.7, 1M context)
 related_reference: ../../../cite-wide/context-v/reminders/Obsidian-Type-Safety.md
 sibling_plan: ../../../perplexed/context-v/plans/20206-05-02_Assuring-Obsidian-Community-Plugin-Requirements.md
 site_uuid: c1549e6a-15c2-4b21-b2c2-1efef62dc763
 hex_code: 5zgt7b
 date_created: 2026-05-03
+date_modified: 2026-08-18
 lede: "17 explicit-any sites, 2 innerHTML calls, and a hand-rolled YAML parser — tighten ESLint to error first so pnpm build surfaces the rest."
 summary: "Publishing-prep plan for image-gin, phased so ESLint is tightened to match the review bot before anything else and the resulting build failures drive the remaining work. Records what was already compliant (manifest/version sync, LICENSE, strict tsconfig, dependency purge) so those phases can be skipped. Sibling to perplexed's plan of the same shape; partly superseded by the 2026-05-10 final cleanup round."
 publish: true
