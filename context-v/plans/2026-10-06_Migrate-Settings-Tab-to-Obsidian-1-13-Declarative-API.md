@@ -25,6 +25,7 @@ tags:
   - Settings
   - Obsidian-1-13
   - Release-0-3-0
+type: Plans
 ---
 
 # Plan — Migrate Image Gin's Settings Tab to Obsidian 1.13's Declarative Settings API

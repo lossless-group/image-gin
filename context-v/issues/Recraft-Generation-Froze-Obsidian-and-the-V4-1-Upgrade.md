@@ -23,6 +23,7 @@ tags:
   - Obsidian-Plugin
 status: Shipped
 date_first_published: 2026-10-06
+type: Issues
 ---
 
 # Issue: Recraft Generation Froze Obsidian, and the V4.1 Upgrade

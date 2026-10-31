@@ -14,6 +14,7 @@ date_created: 2026-05-03
 lede: "17 explicit-any sites, 2 innerHTML calls, and a hand-rolled YAML parser — tighten ESLint to error first so pnpm build surfaces the rest."
 summary: "Publishing-prep plan for image-gin, phased so ESLint is tightened to match the review bot before anything else and the resulting build failures drive the remaining work. Records what was already compliant (manifest/version sync, LICENSE, strict tsconfig, dependency purge) so those phases can be skipped. Sibling to perplexed's plan of the same shape; partly superseded by the 2026-05-10 final cleanup round."
 publish: true
+type: Plans
 ---
 
 # Plan — Bring Image Gin up to Obsidian Community-Plugin Publishing Standards
