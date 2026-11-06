@@ -44,9 +44,11 @@ export class MagnificService {
             throw new Error('Please configure your Magnific API key in settings');
         }
 
+        // `limit`, not `per_page`: the API ignores per_page and returns 50
+        // results, and the modal then caches every one of their thumbnails.
         const params = new URLSearchParams({
             term: term,
-            per_page: limit.toString(),
+            limit: limit.toString(),
             page: '1',
             clean_search: 'true'
         });
@@ -68,10 +70,24 @@ export class MagnificService {
                 throw new Error(`Magnific API returned HTTP ${response.status}: ${response.text?.slice(0, 200) ?? ''}`);
             }
 
-            return response.json as MagnificSearchResult;
+            return withHttpsImages(response.json as MagnificSearchResult);
         } catch (error) {
             logger.error('Magnific API error:', error);
             throw new Error(`Failed to search images: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }
+}
+
+/**
+ * Magnific returns image URLs as plain http://, and the same files are served
+ * over https. Upgrading them keeps insecure links out of notes.
+ */
+export function withHttpsImages(result: MagnificSearchResult): MagnificSearchResult {
+    for (const item of result.data ?? []) {
+        const source = item.image?.source;
+        if (source && typeof source.url === 'string') {
+            source.url = source.url.replace(/^http:\/\//i, 'https://');
+        }
+    }
+    return result;
 }

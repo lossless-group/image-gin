@@ -33,3 +33,6 @@ log.json
 
 # Test bundle output (scripts/run-tests.mjs)
 .test-build/
+
+# Magnific search thumbnails, cached at runtime
+cache/
